@@ -239,7 +239,7 @@ In the past decade there has being some progression in the field of bayesian dee
 
 %% other challenges to be include via further paper reading
 
-Ideas explored: 
+\noindent Ideas explored: 
 
 Pure Bayesian:
 
@@ -257,6 +257,23 @@ Modification to frequentist models that turns into bayesian:
 Using dropout as intrinsic ensemble (bayesian?).
 
 Using stochastic weight averaging instead - Wilson et al
+
+
+
+\noindent Notes:
+
+Swag : approximates local loss distribution (posterior?) using standard normal momentum distribution.
+Propose -> Accept Reject: replacing forward pass for proposal 
+Surrogate: evaluate proposal and spit out its posterior likelihood
+    i.e. 
+    
+    $min(1, pi(w*|x)/pi(wi|x) *  q(wi|w*)/q(w*|wi) )$
+    
+    $min(1, p(x|w*)/p(x|wi) * p(w*|x)/p(wi|x) *  q(wi|w*)/q(w*|wi) )$
+
+    $p(w|x)$ and $q(wi|w*)$ are both easy to compute.
+    
+    $p(x|w)$ requires forward pass, so we evaluate it using surrogate
 
 
 \cite{LDPTBNN}
