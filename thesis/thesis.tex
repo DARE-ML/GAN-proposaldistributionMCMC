@@ -235,7 +235,35 @@ This thesis is an investigation of the ?????????
 
 \chapter{Introduction}\label{intro}
 
+In the past decade there has being some progression in the field of bayesian deep learning. Bayesian deep learning offers an intrinsic way to ensemble models that helps to quantify the posterior uncertainty in model parameters and prediction. Applying tradition bayesian inference techniques such as Monte Carlo sampling in deep neural networks have multiple challenges, mainly revolving around computational expenses due to the evaluation speed of large dataset, exponentially increasing rejection rate in MCMC sampler as the parameter space dimensions grows with large model, difficulty to evaluate uncertainty in realtime data, efficient proposal convergence and others. Variational bayesian inference methods are faster than sampling, but it does not offer an exact approximation of the target distribution.
 
+%% other challenges to be include via further paper reading
+
+Ideas explored: 
+
+Pure Bayesian:
+
+Using stochastic mini batches by welling 2011
+
+Using langevin dynamic gradient as proposal distribution, by chandra
+
+Using parallel tempering to speed up exploration and exploitation by chandra
+
+Using surrogate models to simulate the proposal posterior to speed up evaluation, by chandra.
+Surrogate models are selected from variantional inference category, including, GAN, VAE, and Normaling Flow.
+
+Modification to frequentist models that turns into bayesian:
+
+Using dropout as intrinsic ensemble (bayesian?).
+
+Using stochastic weight averaging instead - Wilson et al
+
+
+\cite{LDPTBNN}
+\cite{SAPTBNN}
+
+
+\noindent Packages of interest include pymc, pyro, pytorch
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
