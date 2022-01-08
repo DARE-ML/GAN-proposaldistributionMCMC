@@ -1,3 +1,15 @@
+@inproceedings{StochGradLangevin,
+  title={Bayesian Learning via Stochastic Gradient Langevin Dynamics},
+  author={Max Welling and Yee Whye Teh},
+  booktitle={ICML},
+  year={2011}
+}
+@inproceedings{Chandra2017BayesianNL,
+  title={Bayesian Neural Learning via Langevin Dynamics for Chaotic Time Series Prediction},
+  author={Rohitash Chandra and Lamiae Azizi and Sally Cripps},
+  booktitle={ICONIP},
+  year={2017}
+}
 @article{SAPTBNN,
   author    = {Rohitash Chandra and
                Konark Jain and
@@ -114,14 +126,37 @@ eprint = {
   abstract = 	 {Given an inverse problem with a normalizing flow prior, we wish to estimate the distribution of the underlying signal conditioned on the observations. We approach this problem as a task of conditional inference on the pre-trained unconditional flow model. We first establish that this is computationally hard for a large class of flow models. Motivated by this, we propose a framework for approximate inference that estimates the target conditional as a composition of two flow models. This formulation leads to a stable variational inference training procedure that avoids adversarial training. Our method is evaluated on a variety of inverse problems and is shown to produce high-quality samples with uncertainty quantification. We further demonstrate that our approach can be amortized for zero-shot inference.}
 }
 
-@misc{openai2018glow,
-      title={Glow: Generative Flow with Invertible 1x1 Convolutions}, 
-      author={Diederik P. Kingma and Prafulla Dhariwal},
-      year={2018},
-      eprint={1807.03039},
-      archivePrefix={arXiv},
-      primaryClass={stat.ML}
+
+@inproceedings{openai2018glow,
+ author = {Kingma, Durk P and Dhariwal, Prafulla},
+ booktitle = {Advances in Neural Information Processing Systems},
+ editor = {S. Bengio and H. Wallach and H. Larochelle and K. Grauman and N. Cesa-Bianchi and R. Garnett},
+ pages = {},
+ publisher = {Curran Associates, Inc.},
+ title = {Glow: Generative Flow with Invertible 1x1 Convolutions},
+ url = {https://proceedings.neurips.cc/paper/2018/file/d139db6a236200b21cc7f752979132d0-Paper.pdf},
+ volume = {31},
+ year = {2018}
 }
+
+
+@InProceedings{PMLR_WGAN2017,
+  title = 	 {{W}asserstein Generative Adversarial Networks},
+  author =       {Martin Arjovsky and Soumith Chintala and L{\'e}on Bottou},
+  booktitle = 	 {Proceedings of the 34th International Conference on Machine Learning},
+  pages = 	 {214--223},
+  year = 	 {2017},
+  editor = 	 {Precup, Doina and Teh, Yee Whye},
+  volume = 	 {70},
+  series = 	 {Proceedings of Machine Learning Research},
+  month = 	 {06--11 Aug},
+  publisher =    {PMLR},
+  pdf = 	 {http://proceedings.mlr.press/v70/arjovsky17a/arjovsky17a.pdf},
+  url = 	 {https://proceedings.mlr.press/v70/arjovsky17a.html},
+  abstract = 	 {We introduce a new algorithm named WGAN, an alternative to traditional GAN training. In this new model, we show that we can improve the stability of learning, get rid of problems like mode collapse, and provide meaningful learning curves useful for debugging and hyperparameter searches. Furthermore, we show that the corresponding optimization problem is sound, and provide extensive theoretical work highlighting the deep connections to different distances between distributions.}
+}
+
+
 
 @misc{xiao2020generative,
       title={Generative Flows with Matrix Exponential}, 

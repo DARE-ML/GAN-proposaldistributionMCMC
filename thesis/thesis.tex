@@ -19,6 +19,7 @@
 \usepackage{latexsym,amsmath}
 \usepackage{graphicx}
 \usepackage{afterpage}
+\usepackage{hyperref}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -233,7 +234,7 @@ This thesis is an investigation of the ?????????
 
 \afterpage{\blankpage}
 
-\chapter{Introduction}\label{intro}
+\chapter{Introduction (Currently a collection of messy up notes)}\label{intro}
 
 In the past decade there has being some progression in the field of bayesian deep learning. Bayesian deep learning offers an intrinsic way to ensemble models that helps to quantify the posterior uncertainty in model parameters and prediction. Applying tradition bayesian inference techniques such as Monte Carlo sampling in deep neural networks have multiple challenges, mainly revolving around computational expenses due to the evaluation speed of large dataset, exponentially increasing rejection rate in MCMC sampler as the parameter space dimensions grows with large model, difficulty to evaluate uncertainty in realtime data, efficient proposal convergence and others. Variational bayesian inference methods are faster than sampling, but it does not offer an exact approximation of the target distribution. 
 
@@ -245,18 +246,19 @@ In the past decade there has being some progression in the field of bayesian dee
 Pure Bayesian:
 
 \begin{enumerate}
-\item Using stochastic mini batches by welling 2011
+\item Using stochastic mini batches with Langevin dynamic by Welling et al \cite{StochGradLangevin}.
 
-\item Using langevin dynamic gradient as proposal distribution, by chandra 
+\item Using langevin dynamic Dynamic as proposal to predict time series by chandra et al \cite{Chandra2017BayesianNL} 
 
 \item Using parallel tempering to speed up exploration and exploitation by chandra \cite{LDPTBNN}
 
 \item Using surrogate models to simulate the posterior likelihood $p(D|\theta)$ to speed up evaluation, by chandra. \cite{SAPTBNN}
 
 \item Surrogate models are selected from variantional inference category, including, GAN, VAE, and Normaling Flow.
+\end{enumerate}
 
-\item Modification to frequentist models that turns into bayesian:
-
+Modification to frequentist models that turns into bayesian:
+\begin{enumerate}
 \item Using dropout as intrinsic ensemble (bayesian?).
 
 \item Using stochastic weight averaging withe gaussian noise (SWAG) - Wilson et al
@@ -275,7 +277,20 @@ GAN have discriminator and generator, generator samples from standard normal and
 
 Normalizing Flow is composed of multiple inversible layers that helps to provide a tractable posterior likelihood on weights. Specifically the GLOW model proposed by OpenAI \cite{openai2018glow} uses 1x1 convolution to simulate channel switching to boost training performance. Another paper from USTC improves upon this by using matrix exponentials (no idea what it means at the moment)
 
-In flow and autoencoder we are dealing with distributions directly in the latent space (flow is autoencoder with only one network) and a recent distance measure proposed in Arjovsky (NYU) et al is the Wasserstein distance (in general Earth Mover Distance) (still reading) 
+In flow and autoencoder we are dealing with distributions directly in the latent space (flow is autoencoder with only one network) and Arjovsky (NYU) \cite{PMLR_WGAN2017} et al proposed in 2017 to simulate the Wasserstein distance (in general Earth Mover Distance) instead as a loss measure when training GAN.(may be it can be applied to VAE or NF? Or maybe it already is, base on how I see the implementation). 
+
+It is stated that divergence measures such as Jensen or KL fails to pickup the low dimensional manifold of a lot of problems' distributions (Q: are the distribution of weights of DNN parameters supported by low dimensional manifolds?), further in practice, other measures when training GAN produces in saturated discriminator that fails to provided any sensible gradient afterwards, that leads to mode collapse. WGAN resolves this as further training of critic/(score based discriminator instead of class based discriminator) still provides reasonable gradient. WGAN's weakness include failure when using momentum based optimizer (use RMSProp instead), and the clamping of hyperparameters to maintain lipschitz (what does this mean?) seems to be troublesome as it is problem specific. This might've being addressed in a later paper co-authored by Arjovsky.
+
+More info here \href{https://lilianweng.github.io/lil-log/2017/08/20/from-GAN-to-WGAN.html}{blog}
+
+\section{low dimensional manifold}
+(Imagine your patterned bedsheets. They've got a nice plaid grid look to them, very easy to predict what the next few centimeters of material look like.
+
+Now imagine someone tied them in a knot, tore them a little, balled them up, and made them a crumpled mess, then handed them to you. Now if you were to look at the plaid pattern, it would be very difficult to discern how the pattern is, or predict what will be the color of any point of the arbitrary 3D ball of mess you've got. But if you untangled it, you could clearly see the pattern again.
+
+The data is a bunch of colors in an arbitrary 3D ball of mess with very difficult to discern patterns. But the data lies on a low dimensional manifold (the 2D bedsheet). If you could figure out the manifold (flatten the bedsheet), the data will be easy to model.)  $explaination\ on\ reddit$
+
+(stil have problem understanding the math behind it, but implementation wise i think it just removes the bounded final activation and uses the score as a loss) 
 
 
 \section{ Notes:}
@@ -293,7 +308,7 @@ Surrogate by Chandra et al: evaluate proposal and spit out its posterior likelih
     $p(x|w)$ requires forward pass, so we evaluate it using surrogate
 
 
-
+\noindent $https://www.lpsm.paris/pageperso/merle/slides_3.1.TV.pdf$ stuff for distance understanding
 
 \noindent Packages of interest include pymc, pyro, pytorch, (maybe  sydney-machine-learning/pingala?)
 
@@ -332,7 +347,7 @@ Surrogate by Chandra et al: evaluate proposal and spit out its posterior likelih
 
 \addcontentsline{toc}{chapter}{References}
 
-\LaTeX{} \cite{latex2e} is a set of macros built atop \TeX{} \cite{texbook}.
+% \LaTeX{} \cite{latex2e} is a set of macros built atop \TeX{} \cite{texbook}.
 \bibliographystyle{plain} % We choose the "plain" reference style
 \bibliography{refs} % Entries are in the refs.bib file
 
