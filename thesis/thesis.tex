@@ -266,12 +266,16 @@ This paper proposes to have the surrogate to generate weight and its correspondi
 
 \section{Generative Models}
 
+The target loss function for generative model in continuous case (we care for continuous case only as we plan to use it to generate the weights) in unsupervised setting is $L(D) \approxeq \frac{1}{N}\sum_{i=1}^N - \log(p_\theta(\tilde{x}^{(i)}))+c$. Where $\tilde{x}^{(i)} = x^{i}+u$ with $u\sim U(0,a)$ and $c=-M\times \log{a}$, $a$ is dependent on data discretization and $M$ is the dimension of $x$. This loss function encourages the network to learn to distribute data across the domain of the standard normal distribution. When there is an underlying distribution to approximate, we need to utilizes distance/divergence measures in loss function to have convergent distribution.
+
 VAE is a shrinkage training model that has two shrinker that trains to a latent space of mean and variance of normal distribution.
 from the two latent vector it then trains to simulate a proper input.
 
 GAN have discriminator and generator, generator samples from standard normal and maps it via a network to output space, discriminator compare the overall generated result to dataset. The training is conducted via a maximizing loss for discriminator and minimizing loss on generator.
 
-Normalizing Flow is composed of multiple inversable layers that helps to provide a tractable posterior likelihood on weights. The target loss function for continuous case (we care for continuous case only as we plan to use it to generate the weights) is $L(D) \approxeq \frac{1}{N}\sum_{i=1}^N - \log(p_\theta(\tilde{x}^{(i)}))+c$. Where $\tilde{x}^{(i)} = x^{i}+u$ with $u\sim U(0,a)$ and $c=-M\times \log{a}$, $a$ is dependent on data discretization and $M$ is the dimension of $x$. This loss function encourages the network to learn to distribute data across the domain of the standard normal distribution. Specifically the GLOW model proposed by OpenAI \cite{openai2018glow} uses 1x1 convolution to boost training performance.
+Normalizing Flow is composed of multiple inversible layers that helps to provide a tractable posterior likelihood on weights. Specifically the GLOW model proposed by OpenAI \cite{openai2018glow} uses 1x1 convolution to simulate channel switching to boost training performance. Another paper from USTC improves upon this by using matrix exponentials (no idea what it means at the moment)
+
+In flow and autoencoder we are dealing with distributions directly in the latent space (flow is autoencoder with only one network) and a recent distance measure proposed in Arjovsky (NYU) et al is the Wasserstein distance (in general Earth Mover Distance) (still reading) 
 
 
 \section{ Notes:}
