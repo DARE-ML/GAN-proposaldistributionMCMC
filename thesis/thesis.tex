@@ -235,7 +235,8 @@ This thesis is an investigation of the ?????????
 
 \chapter{Introduction}\label{intro}
 
-In the past decade there has being some progression in the field of bayesian deep learning. Bayesian deep learning offers an intrinsic way to ensemble models that helps to quantify the posterior uncertainty in model parameters and prediction. Applying tradition bayesian inference techniques such as Monte Carlo sampling in deep neural networks have multiple challenges, mainly revolving around computational expenses due to the evaluation speed of large dataset, exponentially increasing rejection rate in MCMC sampler as the parameter space dimensions grows with large model, difficulty to evaluate uncertainty in realtime data, efficient proposal convergence and others. Variational bayesian inference methods are faster than sampling, but it does not offer an exact approximation of the target distribution.
+In the past decade there has being some progression in the field of bayesian deep learning. Bayesian deep learning offers an intrinsic way to ensemble models that helps to quantify the posterior uncertainty in model parameters and prediction. Applying tradition bayesian inference techniques such as Monte Carlo sampling in deep neural networks have multiple challenges, mainly revolving around computational expenses due to the evaluation speed of large dataset, exponentially increasing rejection rate in MCMC sampler as the parameter space dimensions grows with large model, difficulty to evaluate uncertainty in realtime data, efficient proposal convergence and others. Variational bayesian inference methods are faster than sampling, but it does not offer an exact approximation of the target distribution. 
+
 
 %% other challenges to be include via further paper reading
 
@@ -243,44 +244,54 @@ In the past decade there has being some progression in the field of bayesian dee
 
 Pure Bayesian:
 
-Using stochastic mini batches by welling 2011
+\begin{enumerate}
+\item Using stochastic mini batches by welling 2011
 
-Using langevin dynamic gradient as proposal distribution, by chandra
+\item Using langevin dynamic gradient as proposal distribution, by chandra 
 
-Using parallel tempering to speed up exploration and exploitation by chandra
+\item Using parallel tempering to speed up exploration and exploitation by chandra \cite{LDPTBNN}
 
-Using surrogate models to simulate the proposal posterior to speed up evaluation, by chandra.
-Surrogate models are selected from variantional inference category, including, GAN, VAE, and Normaling Flow.
+\item Using surrogate models to simulate the posterior likelihood $p(D|\theta)$ to speed up evaluation, by chandra. \cite{SAPTBNN}
 
-Modification to frequentist models that turns into bayesian:
+\item Surrogate models are selected from variantional inference category, including, GAN, VAE, and Normaling Flow.
 
-Using dropout as intrinsic ensemble (bayesian?).
+\item Modification to frequentist models that turns into bayesian:
 
-Using stochastic weight averaging instead - Wilson et al
+\item Using dropout as intrinsic ensemble (bayesian?).
+
+\item Using stochastic weight averaging withe gaussian noise (SWAG) - Wilson et al
+\end{enumerate}
+
+This paper proposes to have the surrogate to generate weight and its corresponding numerator and denominator during accept reject to avoid all the extra forward pass and backward loss compare to normal DNN training. The input would be a window of past model parameters and a random vector from normal distrbution, The output would be a new set of model parameters, the corresponding numerator and denominator of accept reject step.
+
+\section{Generative Models}
+
+VAE is a shrinkage training model that has two shrinker that trains to a latent space of mean and variance of normal distribution.
+from the two latent vector it then trains to simulate a proper input.
+
+GAN have discriminator and generator, generator samples from standard normal and maps it via a network to output space, discriminator compare the overall generated result to dataset. The training is conducted via a maximizing loss for discriminator and minimizing loss on generator.
+
+Normalizing Flow is composed of multiple inversable layers that helps to provide a tractable posterior likelihood on weights. The target loss function for continuous case (we care for continuous case only as we plan to use it to generate the weights) is $L(D) \approxeq \frac{1}{N}\sum_{i=1}^N - \log(p_\theta(\tilde{x}^{(i)}))+c$. Where $\tilde{x}^{(i)} = x^{i}+u$ with $u\sim U(0,a)$ and $c=-M\times \log{a}$, $a$ is dependent on data discretization and $M$ is the dimension of $x$. This loss function encourages the network to learn to distribute data across the domain of the standard normal distribution. Specifically the GLOW model proposed by OpenAI \cite{openai2018glow} uses 1x1 convolution to boost training performance.
 
 
-
-\noindent Notes:
+\section{ Notes:}
 
 Swag : approximates local loss distribution (posterior?) using standard normal momentum distribution.
 Propose -> Accept Reject: replacing forward pass for proposal 
-Surrogate: evaluate proposal and spit out its posterior likelihood
+Surrogate by Chandra et al: evaluate proposal and spit out its posterior likelihood
     i.e. 
     
     $min(1, pi(w*|x)/pi(wi|x) *  q(wi|w*)/q(w*|wi) )$
     
     $min(1, p(x|w*)/p(x|wi) * p(w*|x)/p(wi|x) *  q(wi|w*)/q(w*|wi) )$
 
-    $p(w|x)$ and $q(wi|w*)$ are both easy to compute.
-    
+    $p(w|x)$ and $q(wi|w*)$ are both easy to compute, the first is a loss, the second is proposal distribution (using tractable distribution like normal that s easy to evaluate)    
     $p(x|w)$ requires forward pass, so we evaluate it using surrogate
 
 
-\cite{LDPTBNN}
-\cite{SAPTBNN}
 
 
-\noindent Packages of interest include pymc, pyro, pytorch
+\noindent Packages of interest include pymc, pyro, pytorch, (maybe  sydney-machine-learning/pingala?)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
