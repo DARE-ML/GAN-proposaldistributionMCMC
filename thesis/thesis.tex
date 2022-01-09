@@ -218,7 +218,9 @@ style to be shamelessly copied.
 
 \prefacesection{Abstract}
 
-This thesis is an investigation of the ?????????
+This thesis is an extension to the surrogate assisted parallel tempering bayesian deep learning framework that uses a proposal surrogate to sample from that simulates the expensive langevin proposal which requires expensive forward passes. 
+
+the surrogate to generate weight and its corresponding numerator and denominator during accept reject to avoid all the extra forward pass and backward loss compare to normal DNN training. The input would be a window of past model parameters and a random vector from normal distrbution, The output would be a new set of model parameters, the corresponding numerator and denominator of accept reject step.
 
 \afterpage{\blankpage}
 
@@ -264,7 +266,7 @@ Modification to frequentist models that turns into bayesian:
 \item Using stochastic weight averaging withe gaussian noise (SWAG) - Wilson et al
 \end{enumerate}
 
-This paper proposes to have the surrogate to generate weight and its corresponding numerator and denominator during accept reject to avoid all the extra forward pass and backward loss compare to normal DNN training. The input would be a window of past model parameters and a random vector from normal distrbution, The output would be a new set of model parameters, the corresponding numerator and denominator of accept reject step.
+
 
 \section{Generative Models}
 
@@ -275,13 +277,15 @@ from the two latent vector it then trains to simulate a proper input.
 
 GAN have discriminator and generator, generator samples from standard normal and maps it via a network to output space, discriminator compare the overall generated result to dataset. The training is conducted via a maximizing loss for discriminator and minimizing loss on generator.
 
-Normalizing Flow is composed of multiple inversible layers that helps to provide a tractable posterior likelihood on weights. Specifically the GLOW model proposed by OpenAI \cite{openai2018glow} uses 1x1 convolution to simulate channel switching to boost training performance. Another paper from USTC improves upon this by using matrix exponentials (no idea what it means at the moment)
+Normalizing Flow is composed of multiple inversible layers that helps to provide a tractable posterior likelihood on weights. Due to the decomposition of Jacobian matrix during gradient calculation, there is a significant reduction in memory requirements. Specifically the GLOW model proposed by OpenAI \cite{openai2018glow} uses 1x1 convolution to simulate channel switching to boost training performance. Another paper from USTC improves upon this by using matrix exponentials (no idea what it means at the moment)
 
-In flow and autoencoder we are dealing with distributions directly in the latent space (flow is autoencoder with only one network) and Arjovsky (NYU) \cite{PMLR_WGAN2017} et al proposed in 2017 to simulate the Wasserstein distance (in general Earth Mover Distance) instead as a loss measure when training GAN.(may be it can be applied to VAE or NF? Or maybe it already is, base on how I see the implementation). 
+In flow and autoencoder we are dealing with distributions directly in the latent space (flow is autoencoder with only one network) and Arjovsky (NYU) \cite{PMLR2017_WGAN} et al proposed in 2017 to simulate the Wasserstein distance (in general Earth Mover Distance) instead as a loss measure when training GAN.(may be it can be applied to VAE or NF? Or maybe it already is, base on how I see the implementation). 
 
-It is stated that divergence measures such as Jensen or KL fails to pickup the low dimensional manifold of a lot of problems' distributions (Q: are the distribution of weights of DNN parameters supported by low dimensional manifolds?), further in practice, other measures when training GAN produces in saturated discriminator that fails to provided any sensible gradient afterwards, that leads to mode collapse. WGAN resolves this as further training of critic/(score based discriminator instead of class based discriminator) still provides reasonable gradient. WGAN's weakness include failure when using momentum based optimizer (use RMSProp instead), and the clamping of hyperparameters to maintain lipschitz (what does this mean?) seems to be troublesome as it is problem specific. This might've being addressed in a later paper co-authored by Arjovsky.
+It is stated that divergence measures such as Jensen or KL fails to pickup the low dimensional manifold of a lot of problems' distributions (Q: are the distribution of weights of DNN parameters supported by low dimensional manifolds?), further in practice, other measures when training GAN produces in saturated discriminator that fails to provided any sensible gradient afterwards, that leads to mode collapse. WGAN resolves this as further training of critic/(score based discriminator instead of class based discriminator) still provides reasonable gradient. WGAN's weakness include failure when using momentum based optimizer (use RMSProp instead), and the clamping of hyperparameters to maintain lipschitz (what does this mean?) seems to be troublesome as it is problem specific. This is addressed by Gulrajani \cite{NIPS2017_WGAN-GP} using gradient penalty normalisation to replace the clipping that allows the loss to be normally distributed instead of bernoulli distrbuted at the two clipping points. This paper also states that WGAN has comparable epoch performance to WCGAN while offering better stability, the caveat is a slower wallclock time. 
 
-More info here \href{https://lilianweng.github.io/lil-log/2017/08/20/from-GAN-to-WGAN.html}{blog}
+More info here \href{https://lilianweng.github.io/lil-log/2017/08/20/from-GAN-to-WGAN.html}{GAN vs WGAN}
+
+short read on improved \href{https://towardsdatascience.com/demystified-wasserstein-gan-with-gradient-penalty-ba5e9b905ead}{WGAN - Gradient Penalty}
 
 \section{low dimensional manifold}
 (Imagine your patterned bedsheets. They've got a nice plaid grid look to them, very easy to predict what the next few centimeters of material look like.
