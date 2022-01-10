@@ -257,6 +257,8 @@ Pure Bayesian:
 \item Using surrogate models to simulate the posterior likelihood $p(D|\theta)$ to speed up evaluation, by chandra. \cite{SAPTBNN}
 
 \item Surrogate models are selected from variantional inference category, including, GAN, VAE, and Normaling Flow.
+\item Train a WGAN as a prior sampler, that is also used to compute the posterior (This part not so sure).\cite{mucke2021MCWGAN} 
+\item 
 \end{enumerate}
 
 Modification to frequentist models that turns into bayesian:
@@ -352,7 +354,7 @@ Surrogate by Chandra et al: evaluate proposal and spit out its posterior likelih
 \addcontentsline{toc}{chapter}{References}
 
 % \LaTeX{} \cite{latex2e} is a set of macros built atop \TeX{} \cite{texbook}.
-\bibliographystyle{plain} % We choose the "plain" reference style
+\bibliographystyle{unsrt} % We choose the "plain" reference style
 \bibliography{refs} % Entries are in the refs.bib file
 
 \end{document}
