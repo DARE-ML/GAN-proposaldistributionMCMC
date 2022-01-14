@@ -149,7 +149,7 @@
 
 \authornameonly{Sean Luo}
 
-\author{\Authornameonly\\{\bigskip}Supervisor: Professor Rohitash Chandra, Professor Richard Scalzo}
+\author{\Authornameonly\\{\bigskip}Supervisors: Rohitash Chandra, Richard Scalzo}
 
 \copyrightfalse
 \figurespagefalse
@@ -207,7 +207,7 @@ the guidance, care and support they provided.
  
 {\bigskip} Thanks to my family for supporting me to advance in higher education.
 
-{\bigskip\noindent} Thanks go to Fred Flintstone and Robert Taggart for allowing his thesis
+{\bigskip\noindent} Thanks go to Fred Flintstone and Robert Taggart for allowing this thesis
 style to be shamelessly copied.
 
 {\bigskip\bigskip\bigskip\noindent} Sean Luo, Day Month Year.
@@ -236,7 +236,7 @@ the surrogate to generate weight and its corresponding numerator and denominator
 
 \afterpage{\blankpage}
 
-\chapter{Introduction (Currently a collection of messy up notes)}\label{intro}
+\chapter{Introduction (Currently a collection of messy notes)}\label{intro}
 
 In the past decade there has being some progression in the field of bayesian deep learning. Bayesian deep learning offers an intrinsic way to ensemble models that helps to quantify the posterior uncertainty in model parameters and prediction. Applying tradition bayesian inference techniques such as Monte Carlo sampling in deep neural networks have multiple challenges, mainly revolving around computational expenses due to the evaluation speed of large dataset, exponentially increasing rejection rate in MCMC sampler as the parameter space dimensions grows with large model, difficulty to evaluate uncertainty in realtime data, efficient proposal convergence and others. Variational bayesian inference methods are faster than sampling, but it does not offer an exact approximation of the target distribution. 
 
@@ -257,7 +257,9 @@ Pure Bayesian:
 \item Using surrogate models to simulate the posterior likelihood $p(D|\theta)$ to speed up evaluation, by chandra. \cite{SAPTBNN}
 
 \item Surrogate models are selected from variantional inference category, including, GAN, VAE, and Normaling Flow.
-\item Train a WGAN as a prior sampler, that is also used to compute the posterior (This part not so sure).\cite{mucke2021MCWGAN} 
+
+\item Train a WGAN to approximate the joint prior distribution of parameter and state, and sample from latent space instead. This is useful when the domain has high dimension of state and input parameters that each have different prior distributions. \cite{mucke2021MCWGAN}. \href{https://www.youtube.com/watch?v=NpgL3Rve2Rg}{youtube video of paper presentation}
+
 \item 
 \end{enumerate}
 
@@ -265,10 +267,14 @@ Modification to frequentist models that turns into bayesian:
 \begin{enumerate}
 \item Using dropout as intrinsic ensemble (bayesian?).
 
-\item Using stochastic weight averaging withe gaussian noise (SWAG) - Wilson et al
+\item Using stochastic weight averaging withe gaussian noise (SWAG) for bayesian model averaging by approximating a normal weight posterior initialized on a pretrained solution. Bayesian model averaging in general prevents overfitting and overconfidence  - Maddox et al \cite{NEURIPS2019_SWAG}
 \end{enumerate}
 
 
+Other assumptions and constraints
+\begin{enumerate}
+\item weight decay as normal prior on weights
+\end{enumerate}
 
 \section{Generative Models}
 
@@ -315,6 +321,30 @@ Surrogate by Chandra et al: evaluate proposal and spit out its posterior likelih
 
 
 \noindent $https://www.lpsm.paris/pageperso/merle/slides_3.1.TV.pdf$ stuff for distance understanding
+
+list to read
+\href{https://jmlr.org/papers/volume22/20-1009/20-1009.pdf}{Tractable Approximate Gaussian Inference for
+Bayesian Neural Networks
+}
+
+\href{https://arxiv.org/pdf/1701.04722.pdf}{Adversarial Variational Bayes:
+Unifying Variational Autoencoders and Generative Adversarial Networks}
+
+\href{https://towardsdatascience.com/gans-vs-autoencoders-comparison-of-deep-generative-models-985cf15936ea}{GAN vs VAE}
+
+\href{https://pdf.sciencedirectassets.com/271597/1-s2.0-S0925231221X00409/1-s2.0-S0925231221015319/main.pdf?X-Amz-Security-Token=IQoJb3JpZ2luX2VjEAsaCXVzLWVhc3QtMSJGMEQCIFyD6EVhq7gdc13HAw8Qa2abqSEg7RfyW64DmMVAwR%2FAAiAx%2FqYNhfvEXwgQS08r%2FMhhr5VEr%2Be%2BKQ7Nbt9dBYn1iir6AwgjEAQaDDA1OTAwMzU0Njg2NSIMzSUp5Xe14ZtAoyoUKtcD5V8UPCBeS1sryr6y2PzuwXdsx%2FBvmdgsnfgRx1Acrgomb7ZC%2BVpRecYAvucvzsgbXwr4%2FY23IWXOjQVvqaIcF9d6%2F3VF5lJjfBtqyUDoUAZ6fMfSVsgKbMRkbIK%2BUaZot4%2BXfz7LLN3HZla8oHd2sTktGlGF8x4e9UR2PONy%2FZt%2B8Le6H%2FpmTQOEChAS5I23%2Bw0g%2BbW%2B%2FMIOpbdP4tGzrxVpJX4swn1N5QW4SIVF1abKsksuJPt%2FAGLYy%2BzlTEGZ55ycsE0DO3HIQHzRcQcO0MCYd0GcP8sNOmRCk3Jay5KLK%2FPdw0xHow7982Mra1vNMPHgcNPESFshdfg3ukTsqBWWi6AsbEiYJwJDbO1CHpZ4WGllcAvKc91KyLqQE6XUSLzJUCykxTtb1rvjq9ypjki44bdW2ROmKJ%2BymoRnGspYm8U%2FweObZTTKA5LygERVcMPMXLutBWzdSJxvE2DoRgTx5gUpkEpOblBl4QYSwGRFfy1RwxilaNC82XhmeEPUUySfONoSD%2BdRZJk4gtNUjrBJKTtXe7PK8UrnhLybytQ%2BBZTZEl7iU5yb1Zc5jtiGinqiB3FNJ%2BMadk3%2B5ZtfRK2E%2BI5ETcjD6uUYt44KY4kx93sSt%2BAMMNXO844GOqYBLuihn5E46ZnGuLqmP2PzNJSAQ%2F%2Fx6X4SDKC8iS2%2FUaj7e5GPNb69qrcYy%2BnYMmk1XyXxk%2FBmpBj7oKIaS3Xu1GvczXn1i1keem794sv93urWnxC7hYa5Rlx9S2cLqOM9mcNsq1xy6R7lKu2T2of2NvbRYDIjIN1BVAHkr0BWiGSL5L4bFyeJwVgfajomw31LAznCz5G7Arbl3L8EssueNZ2DjR7LVw%3D%3D&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20220111T025152Z&X-Amz-SignedHeaders=host&X-Amz-Expires=300&X-Amz-Credential=ASIAQ3PHCVTYWCQOVEXF%2F20220111%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=63ecad95ada9138a0f14d0c02a0a2f2b564d4ca6a5d6e7e02d06e8a7667310c1&hash=e5ac045fcf223511dbac539722bc02c21c35d61165b6e09cd3e194252b56c49e&host=68042c943591013ac2b2430a89b270f6af2c76d8dfd086a07176afe7c76c2c61&pii=S0925231221015319&tid=spdf-4e567811-c9bc-4491-a143-d0a95da3d0eb&sid=d01637fd29bfb242294978015ea29ea8700bgxrqa&type=client#page=1&zoom=100,0,0}{Distributed Bayesian optimisation framework for deep neuroevolution}
+
+
+\href{https://icml.cc/virtual/2020/poster/6640}{Bridging the Gap Between f-GANs and Wasserstein GANs}
+\href{https://icml.cc/virtual/2020/poster/5871}{Stronger and Faster Wasserstein Adversarial Attacks}
+
+\href{https://icml.cc/virtual/2020/poster/6028}{Modulating Surrogates for Bayesian Optimization}
+
+\href{https://github.com/ermongroup/markov-chain-gan}{GENERATIVE ADVERSARIAL LEARNING
+OF MARKOV CHAINS
+}
+
+\href{google search}{ on the quantitative analysis of decoder based generative models}
 
 \noindent Packages of interest include pymc, pyro, pytorch, (maybe  sydney-machine-learning/pingala?)
 
