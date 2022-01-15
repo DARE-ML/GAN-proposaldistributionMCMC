@@ -276,6 +276,33 @@ Other assumptions and constraints
 \item weight decay as normal prior on weights
 \end{enumerate}
 
+\section{Langevin Dynamics}
+In standard LD or 1 Leap frog step of Hamilton Dynamics, there is 1 distinctive forward+backward pass in a leap frog step:
+
+\begin{enumerate}
+    \item w\_last forward (for posterior likelihood $p(data|w\_last)$)
+    \item w\_last backward (for proposal distribution mean w\_last\_bar,$w\_star \sim N(w\_last\_bar,\sigma)$) 
+    \item w\_star forward (for posterior likelihood $p(data|w\_star)$)
+    \item w\_star backward (for proposal distribution mean w\_star\_bar,$w\_last \sim N(w\_star\_bar,\sigma)$) 
+\end{enumerate}
+
+w\_last are reused from last iteration.
+
+By using a surrogate model to approximate the posterior likelihood $p(data|w_star)$ we replaced step 3's forward pass.
+
+Now we propose to replace step 4's backward pass with a GAN that generates the weights.
+
+The believed benefits includes:
+\begin{enumerate}
+\item faster evaluation.
+\end{enumerate}
+
+For this GAN to be benificial, it has several constraints: 
+\begin{enumerate}
+    \item shallower than original network.
+    \item approximates the full posterior $p(w|data)$.
+\end{enumerate}
+    
 \section{Generative Models}
 
 The target loss function for generative model in continuous case (we care for continuous case only as we plan to use it to generate the weights) in unsupervised setting is $L(D) \approxeq \frac{1}{N}\sum_{i=1}^N - \log(p_\theta(\tilde{x}^{(i)}))+c$. Where $\tilde{x}^{(i)} = x^{i}+u$ with $u\sim U(0,a)$ and $c=-M\times \log{a}$, $a$ is dependent on data discretization and $M$ is the dimension of $x$. This loss function encourages the network to learn to distribute data across the domain of the standard normal distribution. When there is an underlying distribution to approximate, we need to utilizes distance/divergence measures in loss function to have convergent distribution.
@@ -347,6 +374,8 @@ OF MARKOV CHAINS
 \href{google search}{ on the quantitative analysis of decoder based generative models}
 
 \noindent Packages of interest include pymc, pyro, pytorch, (maybe  sydney-machine-learning/pingala?)
+
+\section{Proposal}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
