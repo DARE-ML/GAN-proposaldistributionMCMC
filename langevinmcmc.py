@@ -287,7 +287,6 @@ class MCMC:
 			
 				diff_prop =  first - second  
 				langevin_count = langevin_count + 1
-
 				
 
 			else:
@@ -324,14 +323,13 @@ class MCMC:
 			u = random.uniform(0, 1)
 
 			if u < mh_prob:
+				
 				# Update position 
 				naccept += 1
 				likelihood = likelihood_proposal
 				prior_current = prior_prop
 				w = w_proposal
 				eta = eta_pro
-				if i%10 ==0:
-					print(i,likelihood, prior_current, diff_prop, rmsetrain, rmsetest, 'accepted')
 				 
 
 				pos_w[i + 1,] = w_proposal
@@ -345,13 +343,16 @@ class MCMC:
 
 
 			else:
+				#print("Rejected, Probabilities:",u,mh_prob)
 				pos_w[i + 1,] = pos_w[i,]
 				pos_tau[i + 1,] = pos_tau[i,]
 				fxtrain_samples[i + 1,] = fxtrain_samples[i,]
 				fxtest_samples[i + 1,] = fxtest_samples[i,]
 				rmse_train[i + 1,] = rmse_train[i,]
 				rmse_test[i + 1,] = rmse_test[i,]
- 
+			if i%50 ==0:
+					print(i,likelihood, prior_current, diff_prop, rmsetrain, rmsetest, naccept,'accepted')
+				
 
 		print(naccept, ' num accepted')
 		print(naccept / (samples * 1.0), '% was accepted')
@@ -379,8 +380,8 @@ def main():
 			testdata = np.loadtxt("./Code/Bayesian_neuralnetwork-LangevinMCMC/data/Lazer/test.txt")  #
 			name	= "Lazer"
 		if problem == 2:
-			traindata = np.loadtxt("./Code/Bayesian_neuralnetwork-LangevinMCMC/data/Sunspot/train.txt")
-			testdata = np.loadtxt("./Code/Bayesian_neuralnetwork-LangevinMCMC/data/Sunspot/test.txt")  #
+			traindata = np.loadtxt("data/Sunspot/train.txt")
+			testdata = np.loadtxt("data/Sunspot/test.txt")  #
 			name	= "Sunspot"
 		if problem == 3:
 			traindata = np.loadtxt("./Code/Bayesian_neuralnetwork-LangevinMCMC/data/Mackey/train.txt")
@@ -393,7 +394,7 @@ def main():
 		numSamples = 5000  # need to decide yourself
 		use_langevin_gradients  = True
 
-		l_prob = 0.5
+		l_prob = 1#0.5
 		learn_rate = 0.01
 
 		timer = time.time() 
@@ -401,13 +402,13 @@ def main():
 
 		[pos_w, pos_tau, fx_train, fx_test, x_train, x_test, rmse_train, rmse_test, accept_ratio] = mcmc.sampler(w_limit, tau_limit)
 		print('sucessfully sampled')
-
+		print("acceptance: ",accept_ratio)
 		burnin = 0.5 * numSamples  # use post burn in samples
 		
 		timer2 = time.time()
 
 		timetotal = (timer2 - timer) /60
-		print((timetotal), 'min taken')
+		print((timetotal), ' min taken')
 
 		pos_w = pos_w[int(burnin):, ]
 		pos_tau = pos_tau[int(burnin):, ]
@@ -432,7 +433,7 @@ def main():
 		outres_db = open('result.txt', "a+")
 
 		np.savetxt(outres_db, ( use_langevin_gradients ,    learn_rate, rmse_tr, rmsetr_std, rmse_tes, rmsetest_std, accept_ratio, timetotal), fmt='%1.5f')
-
+		
 
 		ytestdata = testdata[:, input]
 		ytraindata = traindata[:, input]
