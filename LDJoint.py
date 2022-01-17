@@ -208,6 +208,7 @@ class MCMC:
                 theta_all[i,:-1] = w_star
                 theta_all[i,-1]  = tau2_proposal
                 w_last =  w_star
+                w_last_bar = w_star_bar
                 ln_y_w_last = ln_y_w_star
                 eta_last = eta_proposal
                 tau2_last = tau2_proposal
@@ -280,7 +281,7 @@ if __name__ == '__main__':
     testy  = torch.from_numpy(testdata[:,-1]).type(torch.FloatTensor).reshape((len(testdata),1))
     
     if 1:
-        num_samples = 100000
+        num_samples = 10000
         lr = 0.5#0.01
         mcmc = MCMC(trainx,trainy,testx,testy,True,1,lr,num_samples,networktype='fc',hidden_size=[5])
         #print(mcmc.network)
