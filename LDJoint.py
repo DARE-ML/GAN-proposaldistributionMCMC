@@ -183,7 +183,10 @@ class MCMC:
             eta_proposal = torch.normal(eta_last,tau_prop_std)
             tau2_proposal = torch.exp(eta_proposal)
 
-            #log_proposal_ratio += (torch.distributions.LogNormal()) - (torch.distributions.LogNormal())
+            log_proposal_ratio += (
+                torch.distributions.LogNormal(tau2_proposal,tau_prop_std).log_prob(tau2_last) - 
+                torch.distributions.LogNormal(tau2_last,tau_prop_std).log_prob(tau2_proposal)
+            )
             log_prior_ratio = (
                 self.log_p_theta(w_star,sigma=sigma,tau2=tau2_proposal, v1=a,v2=b) - 
                 self.log_p_theta(w_last,sigma=sigma,tau2=tau2_last,     v1=a,v2=b)
@@ -281,7 +284,7 @@ if __name__ == '__main__':
     testy  = torch.from_numpy(testdata[:,-1]).type(torch.FloatTensor).reshape((len(testdata),1))
     
     if 1:
-        num_samples = 10000
+        num_samples = 2000
         lr = 0.5#0.01
         mcmc = MCMC(trainx,trainy,testx,testy,True,1,lr,num_samples,networktype='fc',hidden_size=[5])
         #print(mcmc.network)
@@ -303,12 +306,17 @@ if __name__ == '__main__':
         bp = 1
 
         #plotting
-        fx_mu_tr = fx_train[int(fx_train.shape[0]/2):].mean(axis=0)
-        fx_high = np.percentile(fx_test, 95, axis=0)
-        fx_low = np.percentile(fx_test, 5, axis=0)
+        fx_train_burn = fx_train[int(fx_train.shape[0]/2):].detach().numpy()
+        fx_mu_tr = fx_train_burn.mean(axis=0)
+        fx_high_tr = np.percentile(fx_train_burn, 95, axis=0)
+        fx_low_tr = np.percentile(fx_train_burn, 5, axis=0)
 
         plt.plot(trainy, label='actual')
-        plt.plot(fx_mu_tr.detach().numpy(), label='pred. (mean)')
+        plt.plot(fx_mu_tr, label='pred. (mean)')
+        plt.plot(fx_high_tr, label='pred. (high)')
+        plt.plot(fx_low_tr, label='pred. (low)')
+        #plt.fill_between(x_test, fx_low_tr, fx_high_tr, facecolor='g', alpha=0.4)
+        plt.legend(loc='upper right')
         plt.savefig('mcmcrestrain_ldjoint.png') 
         plt.clf()
 
