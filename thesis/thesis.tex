@@ -218,9 +218,12 @@ style to be shamelessly copied.
 
 \prefacesection{Abstract}
 
-This thesis is an extension to the surrogate assisted parallel tempering bayesian deep learning framework that uses a proposal surrogate to sample from that simulates the expensive langevin proposal which requires expensive forward passes. 
+Bayesian learning methods natively offer insights into dependencies between parameters and posterior probability density estimation in complex systems. Markov Chain Monte Carlo methods compare to variational inference methods offers an asymptotically exact approximation to the posterior. However it suffers from exponetially high computational cost in multimodal high dimensional distributions due to high rejection rate from proposal distributions such as Langevin Dynamic or network architecture. This thesis propose to sample from a surrogate proposal distribution approximated by a Generative Adversarial Network trained from previously accepted proposals from parallelized tempered training such that it increases the acceptance rate and avoid the expensive forward pass that is required for Langevin Dynamics. 
 
-the surrogate to generate weight and its corresponding numerator and denominator during accept reject to avoid all the extra forward pass and backward loss compare to normal DNN training. The input would be a window of past model parameters and a random vector from normal distrbution, The output would be a new set of model parameters, the corresponding numerator and denominator of accept reject step.
+The results hopefully don't prove to be inconclusive.
+
+Finally this method is demonstrated on a large geological model on radar data. 
+
 
 \afterpage{\blankpage}
 
@@ -237,6 +240,8 @@ the surrogate to generate weight and its corresponding numerator and denominator
 \afterpage{\blankpage}
 
 \chapter{Introduction (Currently a collection of messy notes)}\label{intro}
+
+Application of bayesian methods
 
 In the past decade there has being some progression in the field of bayesian deep learning. Bayesian deep learning offers an intrinsic way to ensemble models that helps to quantify the posterior uncertainty in model parameters and prediction. Applying tradition bayesian inference techniques such as Monte Carlo sampling in deep neural networks have multiple challenges, mainly revolving around computational expenses due to the evaluation speed of large dataset, exponentially increasing rejection rate in MCMC sampler as the parameter space dimensions grows with large model, difficulty to evaluate uncertainty in realtime data, efficient proposal convergence and others. Variational bayesian inference methods are faster than sampling, but it does not offer an exact approximation of the target distribution. 
 
@@ -275,34 +280,6 @@ Other assumptions and constraints
 \begin{enumerate}
 \item weight decay as normal prior on weights
 \end{enumerate}
-\section{Markov Chain Monte Carlo}
-
-\section{Langevin Dynamics}
-In standard LD or 1 Leap frog step of Hamilton Dynamics, there is 1 distinctive forward+backward pass in a leap frog step:
-
-\begin{enumerate}
-    \item w\_last forward (for posterior likelihood $p(data|w\_last)$)
-    \item w\_last backward (for proposal distribution mean w\_last\_bar,$w\_star \sim N(w\_last\_bar,\sigma)$) 
-    \item w\_star forward (for posterior likelihood $p(data|w\_star)$)
-    \item w\_star backward (for proposal distribution mean w\_star\_bar,$w\_last \sim N(w\_star\_bar,\sigma)$) 
-\end{enumerate}
-
-w\_last are reused from last iteration.
-
-By using a surrogate model to approximate the posterior likelihood $p(data|w_star)$ we replaced step 3's forward pass.
-
-Now we propose to replace step 4's backward pass with a GAN that generates the weights.
-
-The believed benefits includes:
-\begin{enumerate}
-\item faster evaluation.
-\end{enumerate}
-
-For this GAN to be benificial, it has several constraints: 
-\begin{enumerate}
-    \item shallower than original network.
-    \item approximates the full posterior $p(w|data)$.
-\end{enumerate}
     
 \section{Generative Models}
 
@@ -331,6 +308,48 @@ Now imagine someone tied them in a knot, tore them a little, balled them up, and
 The data is a bunch of colors in an arbitrary 3D ball of mess with very difficult to discern patterns. But the data lies on a low dimensional manifold (the 2D bedsheet). If you could figure out the manifold (flatten the bedsheet), the data will be easy to model.)  $explaination\ on\ reddit$
 
 (stil have problem understanding the math behind it, but implementation wise i think it just removes the bounded final activation and uses the score as a loss) 
+
+\section{Markov Chain Monte Carlo}
+
+\section{Langevin Dynamics}
+In standard LD or 1 Leap frog step of Hamilton Dynamics, there is 1 distinctive forward+backward pass in a leap frog step:
+
+\begin{enumerate}
+    \item w\_last forward (for posterior likelihood $p(data|w\_last)$)
+    \item w\_last backward (for proposal distribution mean w\_last\_bar,$w\_star \sim N(w\_last\_bar,\sigma)$) 
+    \item w\_star forward (for posterior likelihood $p(data|w\_star)$)
+    \item w\_star backward (for proposal distribution mean w\_star\_bar,$w\_last \sim N(w\_star\_bar,\sigma)$) 
+\end{enumerate}
+
+The empirical results agrees thats the time complexity with respect to epoch of frequentist training and langevin proposal is identical, but langevin is about 3-4 times slower in my impleentation. The suspected reason is the heavy cost of weight replacement/ duplication and copy for statistic analysis purpose. I need to confirm by how much this can be optimized. 
+
+w\_last are reused from last iteration.
+
+By using a surrogate model to approximate the posterior likelihood $p(data|w_star)$ we replaced step 3's forward pass.
+
+\section{Proposal}
+Now we propose to replace step 4's backward pass with a GAN that generates the weights.
+
+The believed benefits includes:
+\begin{enumerate}
+\item faster evaluation.
+\end{enumerate}
+
+For this GAN to be benificial, it has several constraints: 
+\begin{enumerate}
+    \item shallower than original network.
+    \item approximates the full posterior $p(w|data)$.
+\end{enumerate}
+
+\section{Potential Challenges}
+overfitting of GAN that leads to no escape of local optimum during training or heatup. (maybe solvable with parallel tempering?)
+
+\section{Random Ideas}
+Multiple GANs, each for different module/layers of network such that it works for larger network like resnet50.
+
+Federated learning - consider each parallel process to have its own minibatch as localized individual data.
+
+Few shot learning - consider a potentially limited amount of accepted samples for training. 
 
 
 \section{ Notes:}

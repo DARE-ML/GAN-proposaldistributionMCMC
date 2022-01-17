@@ -397,7 +397,7 @@ def main():
 
         topology = [input, hidden, output]
         random.seed(time.time())
-        numSamples = 5000  # need to decide yourself
+        numSamples = 1000  # need to decide yourself
         use_langevin_gradients  = True
 
         l_prob = 1#0.5
@@ -414,7 +414,7 @@ def main():
         timer2 = time.time()
 
         timetotal = (timer2 - timer) /60
-        print((timetotal), 'min taken')
+        print((timetotal), ' mins taken', timer2-timer, " seconds")
 
         pos_w = pos_w[int(burnin):, ]
         pos_tau = pos_tau[int(burnin):, ]

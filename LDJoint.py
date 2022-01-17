@@ -128,6 +128,7 @@ class MCMC:
         fx_train = torch.zeros((self.n_iter,len(self.trainy))) # here assumes that y is one dimension
         theta_all        = torch.zeros((self.n_iter,self.n_weights+1))
 
+        theta_accepted   = torch.zeros((self.n_iter,self.n_weights+1))
 
         theta_all[0,:-1] = self.network.encode()
 
@@ -207,6 +208,8 @@ class MCMC:
 
             if u < mh_prob:
                 # Update position 
+                theta_accepted[n_accept,:-1] = w_star
+                theta_accepted[n_accept,-1]  = tau2_proposal
                 n_accept += 1
                 theta_all[i,:-1] = w_star
                 theta_all[i,-1]  = tau2_proposal
@@ -224,11 +227,11 @@ class MCMC:
 
                 #fx_test[i,] = fx_test[i-1,] 
                 fx_train[i,]= fx_train[i-1,]
-            if i%100 == 0:
-                print(i,"Accepted: ",n_accept)
+            #if i%100 == 0:
+            #    print(i,"Accepted: ",n_accept)
         accept_ratio = n_accept/self.n_iter
                 # temporarily ignoring rmse statistic, just want to get thinks working
-        return [theta_all,fx_train,fx_test,accept_ratio]
+        return [theta_all,theta_accepted,fx_train,fx_test,accept_ratio]
 
 class FreqTrain:
     def __init__(self,trainx,trainy,testx,testy, use_langevin,langevin_prob,learning_rate,n_full_batches,networktype = 'fc', hidden_size = [5] ):
@@ -274,6 +277,7 @@ class FreqTrain:
             plt.savefig('freq_train_ldjoint.png') 
             plt.clf()
 from torchinfo import summary
+from time import time
 if __name__ == '__main__':
     traindata = np.loadtxt("./data/Sunspot/train.txt")
     testdata = np.loadtxt("./data/Sunspot/test.txt")  #
@@ -283,46 +287,50 @@ if __name__ == '__main__':
     testx  = torch.from_numpy(testdata[:,:-1]).type(torch.FloatTensor)
     testy  = torch.from_numpy(testdata[:,-1]).type(torch.FloatTensor).reshape((len(testdata),1))
     
-    if 1:
-        num_samples = 2000
-        lr = 0.5#0.01
-        mcmc = MCMC(trainx,trainy,testx,testy,True,1,lr,num_samples,networktype='fc',hidden_size=[5])
-        #print(mcmc.network)
-        #print(trainx.shape)
-        
-        #batch_size = 10
-        #summary(mcmc.network,input_size=(batch_size,4))
+    
+    num_samples = 3000
+    lr = 0.01
+    # mcmc
+    st = time()
+    mcmc = MCMC(trainx,trainy,testx,testy,True,1,lr,num_samples,networktype='fc',hidden_size=[5])#[4,3])
+    #print(mcmc.network)
+    #print(trainx.shape)
+    
+    #batch_size = 10
+    #summary(mcmc.network,input_size=(batch_size,4))
 
-        #a = 0.1
-        #b = 0.1
-        #sigma = 0.025
-        a = 0
-        b = 0
-        sigma = 5
-        tau_prop_std = 0.01 #0.2
-        w_prop_std   = 0.02
-        [theta_all,fx_train,fx_test,accept_ratio] = mcmc.sample(a,b,sigma,tau_prop_std,w_prop_std)
-        print(accept_ratio)
-        bp = 1
+    #a = 0.1
+    #b = 0.1
+    #sigma = 0.025
+    a = 0
+    b = 0
+    sigma = 5
+    tau_prop_std = 0.01 #0.2
+    w_prop_std   = 0.02
+    [theta_all,fx_train,fx_test,accept_ratio] = mcmc.sample(a,b,sigma,tau_prop_std,w_prop_std)
+    print(accept_ratio)
+    print("Time Taken:",time()-st)
 
-        #plotting
-        fx_train_burn = fx_train[int(fx_train.shape[0]/2):].detach().numpy()
-        fx_mu_tr = fx_train_burn.mean(axis=0)
-        fx_high_tr = np.percentile(fx_train_burn, 95, axis=0)
-        fx_low_tr = np.percentile(fx_train_burn, 5, axis=0)
+    bp = 1
 
-        plt.plot(trainy, label='actual')
-        plt.plot(fx_mu_tr, label='pred. (mean)')
-        plt.plot(fx_high_tr, label='pred. (high)')
-        plt.plot(fx_low_tr, label='pred. (low)')
-        #plt.fill_between(x_test, fx_low_tr, fx_high_tr, facecolor='g', alpha=0.4)
-        plt.legend(loc='upper right')
-        plt.savefig('mcmcrestrain_ldjoint.png') 
-        plt.clf()
+    #plotting
+    fx_train_burn = fx_train[int(fx_train.shape[0]/2):].detach().numpy()
+    fx_mu_tr = fx_train_burn.mean(axis=0)
+    fx_high_tr = np.percentile(fx_train_burn, 95, axis=0)
+    fx_low_tr = np.percentile(fx_train_burn, 5, axis=0)
 
-        bp = 1
-    if 0:
-        lr = 0.5#0.01
-        num_samples = 1000
-        freq = FreqTrain(trainx,trainy,testx,testy,True,1,lr,num_samples,networktype='fc',hidden_size=[5])
-        freq.train()
+    plt.plot(trainy, label='actual')
+    plt.plot(fx_mu_tr, label='pred. (mean)')
+    plt.plot(fx_high_tr, label='pred. (high)')
+    plt.plot(fx_low_tr, label='pred. (low)')
+    #plt.fill_between(x_test, fx_low_tr, fx_high_tr, facecolor='g', alpha=0.4)
+    plt.legend(loc='upper right')
+    plt.savefig('mcmcrestrain_ldjoint.png') 
+    plt.clf()
+
+    bp = 1
+    # FREQ
+    st = time()
+    freq = FreqTrain(trainx,trainy,testx,testy,True,1,lr,num_samples,networktype='fc',hidden_size=[3,3])
+    freq.train()
+    print("Time Taken:",time()-st)
