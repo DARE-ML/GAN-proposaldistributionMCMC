@@ -231,7 +231,7 @@ class MCMC:
             #    print(i,"Accepted: ",n_accept)
         accept_ratio = n_accept/self.n_iter
                 # temporarily ignoring rmse statistic, just want to get thinks working
-        return [theta_all,theta_accepted,fx_train,fx_test,accept_ratio]
+        return [theta_all,theta_accepted[:n_accept],fx_train,fx_test,accept_ratio]
 
 class FreqTrain:
     def __init__(self,trainx,trainy,testx,testy, use_langevin,langevin_prob,learning_rate,n_full_batches,networktype = 'fc', hidden_size = [5] ):
@@ -307,8 +307,8 @@ if __name__ == '__main__':
     sigma = 5
     tau_prop_std = 0.01 #0.2
     w_prop_std   = 0.02
-    [theta_all,fx_train,fx_test,accept_ratio] = mcmc.sample(a,b,sigma,tau_prop_std,w_prop_std)
-    print(accept_ratio)
+    [theta_all,theta_accepted,fx_train,fx_test,accept_ratio] = mcmc.sample(a,b,sigma,tau_prop_std,w_prop_std)
+    print(accept_ratio,len(theta_accepted))
     print("Time Taken:",time()-st)
 
     bp = 1
