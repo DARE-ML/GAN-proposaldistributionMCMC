@@ -1,16 +1,32 @@
 import torch 
-from abc import ABC
+from abc import ABC,abstractmethod
 class TargetDistribution(ABC):
-    def __init__(self):
-        self.samples_store
-
-def core():
+    def __init__(self,totalsamples):
+        self._samples_store = torch.zeros()
+        self._hist_likelihoods = torch.zeros()
+    @abstractmethod
+    def proposal(self,condition):
+        pass
+    @abstractmethod
+    def prior(self):
+        pass
+    @abstractmethod
+    def log_likelihood(sample):
+        pass
+    
+    def log_likelihood_iter(i):
+        return self._hist_likelihoods[i]
+    @abstractmethod
+    def accept(self,newsample):
+        pass
+    @abstractmethod
+    def reject(self):
+        pass
+class Rastrigin(TargetDistribution):
     pass
-def proposal():
+class Regress1(TargetDistribution):
     pass
-def prior():
-    pass
-def posterior():
+class Regress1ParallelTempering(TargetDistribution):
     pass
 
 class MetropolisHasting:
@@ -50,7 +66,7 @@ class MetropolisHasting:
                 alpha = 1
             if u < alpha:
                 #accept proposal
-                pass
+                self.target.accept(theta_prop)
             else:
                 #reject proposal
-                pass
+                self.target.reject()
