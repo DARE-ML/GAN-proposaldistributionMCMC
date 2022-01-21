@@ -1,11 +1,14 @@
 import torch 
 from abc import ABC,abstractmethod
 class TargetDistribution(ABC):
-    def __init__(self,totalsamples):
-        self._samples_store = torch.zeros()
-        self._hist_likelihoods = torch.zeros()
     @abstractmethod
-    def proposal(self,condition):
+    def __init__(self,totalsamples):
+        pass
+    @abstractmethod
+    def propose(self):
+        pass
+    @abstractmethod
+    def proposal_dist(self,condition):
         pass
     @abstractmethod
     def prior(self):
@@ -13,7 +16,7 @@ class TargetDistribution(ABC):
     @abstractmethod
     def log_likelihood(sample):
         pass
-    
+
     def log_likelihood_iter(i):
         return self._hist_likelihoods[i]
     @abstractmethod
@@ -23,7 +26,22 @@ class TargetDistribution(ABC):
     def reject(self):
         pass
 class Rastrigin(TargetDistribution):
-    pass
+    def __init__(self,totalsamples,dimension):
+        self._samples_store = torch.zeros(totalsamples,dimension)
+        self._hist_likelihoods = torch.zeros(totalsamples)
+    def propose(self):
+        #generate from uniform grid.
+        return torch.rand(2)*10.24-5.12
+    def propose2(self):
+        # use random walk
+        pass
+    def proposal_dist(self, condition):
+        # since its a constant, and only used for proportionality to calc ratio
+        # use 1 lazily
+        return 1
+    def prior(self):
+        # coincidencially identical to proposal
+        pass
 class Regress1(TargetDistribution):
     pass
 class Regress1ParallelTempering(TargetDistribution):
@@ -39,11 +57,11 @@ class MetropolisHasting:
         self.target.log_likelihood(theta_last)
         for i in range(1,self.totalsamples):
             # generate proposal theta* \sim q(theta|theta_last)
-            theta_prop = 1
+            theta_prop = self.target.propose()
 
             log_proposal_ratio = ( 
-                self.target.proposal(theta_prop).log_prob(theta_last) - 
-                self.target.proposal(theta_last).log_prob(theta_prop)
+                self.target.proposal_dist(theta_prop).log_prob(theta_last) - 
+                self.target.proposal_dist(theta_last).log_prob(theta_prop)
             )
             log_prior_ratio = (
                 self.target.prior().log_prob(theta_prop) - 
