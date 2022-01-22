@@ -342,7 +342,22 @@ For this GAN to be benificial, it has several constraints:
 \end{enumerate}
 
 \section{Potential Challenges}
-overfitting of GAN that leads to no escape of local optimum during training or heatup. (maybe solvable with parallel tempering?)
+overfitting of GAN that leads to no escape of local optimum during training or heatup. 
+
+Potential Solutions:
+\begin{itemize}
+\item use exploration/ exploitation 
+\item maybe solvable with parallel tempering with different loss penalty in wgan?)
+\end{itemize}
+
+Solving the detailed balance condition of using GAN. because of generating from normal. we need to consider the probability transformation.
+Tasks and potential solutions:
+\begin{itemize}
+\item use flow based GAN or flow
+\item calculate the invertible functions and the respective post transform distribution of GAN
+\item ignore?
+\end{itemize}
+
 
 \section{Random Ideas}
 Multiple GANs, each for different module/layers of network such that it works for larger network like resnet50.
