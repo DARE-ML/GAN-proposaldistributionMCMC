@@ -280,7 +280,34 @@ Other assumptions and constraints
 \begin{enumerate}
 \item weight decay as normal prior on weights
 \end{enumerate}
-    
+
+\section{Optimization}
+Neural networks are typically optimized through variants of the gradient descent optimizers. While gradient descent is stable and efficient to train, it is very easy for it to be stuck at a high dimensional local optimum or saddle point. Various gradient free methods such as evolutionary algorithms {genetic, neuroevolution}, metaheuristic {particle swarm}, bayesian optimization {} have being applied to neural networks and each have their weaknesses. 
+\subsection{Genetic Algorithms}
+\subsection{Metaheuristic Algorithms}
+\subsection{Bayesian Optimization}
+\subsection{GAN based landscape Optimization}
+
+\section{Markov Chain Monte Carlo Sampling}
+
+\subsection{Hamiltonian Dynamics}
+
+\subsection{Langevin Dynamics}
+In standard LD or 1 Leap frog step of Hamilton Dynamics, there is 1 distinctive forward+backward pass in a leap frog step:
+
+\begin{enumerate}
+    \item w\_last forward (for posterior likelihood $p(data|w\_last)$)
+    \item w\_last backward (for proposal distribution mean w\_last\_bar,$w\_star \sim N(w\_last\_bar,\sigma)$) 
+    \item w\_star forward (for posterior likelihood $p(data|w\_star)$)
+    \item w\_star backward (for proposal distribution mean w\_star\_bar,$w\_last \sim N(w\_star\_bar,\sigma)$) 
+\end{enumerate}
+
+The empirical results agrees thats the time complexity with respect to epoch of frequentist training and langevin proposal is identical, but langevin is about 3-4 times slower in my impleentation. The suspected reason is the heavy cost of weight replacement/ duplication and copy for statistic analysis purpose. I need to confirm by how much this can be optimized. 
+
+w\_last are reused from last iteration.
+
+By using a surrogate model to approximate the posterior likelihood $p(data|w_star)$ we replaced step 3's forward pass.
+
 \section{Generative Models}
 
 The target loss function for generative model in continuous case (we care for continuous case only as we plan to use it to generate the weights) in unsupervised setting is $L(D) \approxeq \frac{1}{N}\sum_{i=1}^N - \log(p_\theta(\tilde{x}^{(i)}))+c$. Where $\tilde{x}^{(i)} = x^{i}+u$ with $u\sim U(0,a)$ and $c=-M\times \log{a}$, $a$ is dependent on data discretization and $M$ is the dimension of $x$. This loss function encourages the network to learn to distribute data across the domain of the standard normal distribution. When there is an underlying distribution to approximate, we need to utilizes distance/divergence measures in loss function to have convergent distribution.
@@ -308,65 +335,6 @@ Now imagine someone tied them in a knot, tore them a little, balled them up, and
 The data is a bunch of colors in an arbitrary 3D ball of mess with very difficult to discern patterns. But the data lies on a low dimensional manifold (the 2D bedsheet). If you could figure out the manifold (flatten the bedsheet), the data will be easy to model.)  $explaination\ on\ reddit$
 
 (stil have problem understanding the math behind it, but implementation wise i think it just removes the bounded final activation and uses the score as a loss) 
-
-\section{Markov Chain Monte Carlo}
-
-\section{Langevin Dynamics}
-In standard LD or 1 Leap frog step of Hamilton Dynamics, there is 1 distinctive forward+backward pass in a leap frog step:
-
-\begin{enumerate}
-    \item w\_last forward (for posterior likelihood $p(data|w\_last)$)
-    \item w\_last backward (for proposal distribution mean w\_last\_bar,$w\_star \sim N(w\_last\_bar,\sigma)$) 
-    \item w\_star forward (for posterior likelihood $p(data|w\_star)$)
-    \item w\_star backward (for proposal distribution mean w\_star\_bar,$w\_last \sim N(w\_star\_bar,\sigma)$) 
-\end{enumerate}
-
-The empirical results agrees thats the time complexity with respect to epoch of frequentist training and langevin proposal is identical, but langevin is about 3-4 times slower in my impleentation. The suspected reason is the heavy cost of weight replacement/ duplication and copy for statistic analysis purpose. I need to confirm by how much this can be optimized. 
-
-w\_last are reused from last iteration.
-
-By using a surrogate model to approximate the posterior likelihood $p(data|w_star)$ we replaced step 3's forward pass.
-
-\section{Proposal}
-Now we propose to replace step 4's backward pass with a GAN that generates the weights.
-
-The believed benefits includes:
-\begin{enumerate}
-\item faster evaluation.
-\end{enumerate}
-
-For this GAN to be benificial, it has several constraints: 
-\begin{enumerate}
-    \item shallower than original network.
-    \item approximates the full posterior $p(w|data)$.
-\end{enumerate}
-
-\section{Potential Challenges}
-overfitting of GAN that leads to no escape of local optimum during training or heatup. 
-
-Potential Solutions:
-\begin{itemize}
-\item use exploration/ exploitation 
-\item maybe solvable with parallel tempering with different loss penalty in wgan?)
-\end{itemize}
-
-Solving the detailed balance condition of using GAN. because of generating from normal. we need to consider the probability transformation.
-Tasks and potential solutions:
-\begin{itemize}
-\item use flow based GAN or flow
-\item calculate the invertible functions and the respective post transform distribution of GAN
-\item embarassingly ignore it?
-\item look up stuff on invertible GAN, invertible conditional GAN, and other stuff.
-\item generate the lanvegin $q(\theta*|\theta_l)$ probability and the corresponding weight together.
-\end{itemize}
-
-
-\section{Random Ideas}
-Multiple GANs, each for different module/layers of network such that it works for larger network like resnet50.
-
-Federated learning - consider each parallel process to have its own minibatch as localized individual data.
-
-Few shot learning - consider a potentially limited amount of accepted samples for training. 
 
 
 \section{ Notes:}
@@ -412,26 +380,61 @@ OF MARKOV CHAINS
 
 \noindent Packages of interest include pymc, pyro, pytorch, (maybe  sydney-machine-learning/pingala?)
 
+\chapter{Proposal}
+
 \section{Proposal}
+Now we propose to replace step 4's backward pass with a GAN that generates the weights.
+
+The believed benefits includes:
+\begin{enumerate}
+\item faster evaluation.
+\end{enumerate}
+
+For this GAN to be benificial, it has several constraints: 
+\begin{enumerate}
+    \item shallower than original network.
+    \item approximates the full posterior $p(w|data)$.
+\end{enumerate}
+
+\section{Potential Challenges}
+overfitting of GAN that leads to no escape of local optimum during training or heatup. 
+
+Potential Solutions:
+\begin{itemize}
+\item use exploration/ exploitation 
+\item maybe solvable with parallel tempering with different loss penalty in wgan?)
+\end{itemize}
+
+Solving the detailed balance condition of using GAN. because of generating from normal. we need to consider the probability transformation.
+Tasks and potential solutions:
+\begin{itemize}
+\item use flow based GAN or flow
+\item calculate the invertible functions and the respective post transform distribution of GAN
+\item embarassingly ignore it?
+\item look up stuff on invertible GAN, invertible conditional GAN, and other stuff.
+\item generate the lanvegin $q(\theta*|\theta_l)$ probability and the corresponding weight together.
+\end{itemize}
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Random Ideas}
+Multiple GANs, each for different module/layers of network such that it works for larger network like resnet50.
 
-\chapter{Sampling}\label{samp}
+Federated learning - consider each parallel process to have its own minibatch as localized individual data.
 
+Few shot learning - consider a potentially limited amount of accepted samples for training. 
 
 
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\chapter{Method}\label{meth}
+\chapter{Algorithm}\label{meth}
 
 
 
 
 %%%%%%%%%%%%%%%%
-\chapter{Experiment}\label{expe}
+\chapter{Experiments}\label{expe}
 
 
 \chapter{Analysis}\label{anal}
