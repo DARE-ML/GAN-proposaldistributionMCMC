@@ -16,7 +16,7 @@
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{amsthm}
-\usepackage{latexsym,amsmath}
+\usepackage{latexsym,amsmath,bm}
 \usepackage{graphicx}
 \usepackage{afterpage}
 \usepackage{hyperref}
@@ -288,11 +288,33 @@ Neural networks are typically optimized through variants of the gradient descent
 \subsection{Bayesian Optimization}
 \subsection{GAN based landscape Optimization}
 
-\section{Markov Chain Monte Carlo Sampling}
+\section{Markov Chain Monte Carlo}
+\subsection {Metropolis Hasting}
+Assume a distribution of a random variable $p(\theta|Y), \theta = (\bm{w},\tau)$ that we'd like to sample from that is hard to evaluate. Specifically:
+
+\begin{gather*} 
+    Y \sim \text{N}(f(\bm{x}),\tau^2) \\
+    p(y)=\frac{1}{\sqrt{2\pi\tau^2}} \exp(-\frac{1}{2\tau^2} (y-f_{\bm{w}}(\bm{x}))^2) \\ 
+    \bm{w} \sim \text{N}(\mathbf{0},\sigma^2) \\ 
+    \tau^2 \sim \text{LogNorm}(\alpha,\beta) \\
+    p(\bm{\theta}|Y) \propto p(Y|\bm{\theta})p(\tau^2)p(\bm{w})
+\end{gather*}
+The Metropolis Hasting algorithm allows us to sample this distribution by using a proposal distribution $q(\bm{\theta}|\bm{\theta}_t)$ that is rejected according to the probability 
+\begin{equation*}
+    \min(1,\frac{p(\bm{\theta}^*|x)q(\bm{\theta}_t|\bm{\theta}^*)}{p(\bm{\theta}_t|x)q(\bm{\theta}^*|\bm{\theta}_t)})
+\end{equation*}
+Criterion for suitable prroposal distribution include uniqueness of distribution and existance of stationary distribution. 
 
 \subsection{Hamiltonian Dynamics}
+Hamiltonian Monte Carlo is a vaiant of Metropolis Hasting Algorithm that utilizes Hamiltonian dynamics to propose a new point that incorporates the energy information of the current state to increase acceptance probability while reducing correlation between the points.
+it samples according to the following acceptance distribution:
+\begin{gather*}
+    \alpha = \min(1,\frac{\exp[-H(x_n (L\delta t),\mathbf{p}_n(L\delta t) ]} {\exp[-H(x_n (0),\mathbf{p}_n(0) ]} )
+\end{gather*} 
 
 \subsection{Langevin Dynamics}
+Langevin Dynamic is a single leap frog step Hamiltonian Monte Carlo that in can be alternatively considered as adding gaussian noise to weights proposed by gradient descent algorithms. In practice it still maintains the ability to increase acceptance probability. 
+
 In standard LD or 1 Leap frog step of Hamilton Dynamics, there is 1 distinctive forward+backward pass in a leap frog step:
 
 \begin{enumerate}
@@ -309,6 +331,9 @@ w\_last are reused from last iteration.
 By using a surrogate model to approximate the posterior likelihood $p(data|w_star)$ we replaced step 3's forward pass.
 
 \section{Generative Models}
+\subsection{VAE}
+\subsection{Normalizing Flow}
+\subsection{GAN}
 
 The target loss function for generative model in continuous case (we care for continuous case only as we plan to use it to generate the weights) in unsupervised setting is $L(D) \approxeq \frac{1}{N}\sum_{i=1}^N - \log(p_\theta(\tilde{x}^{(i)}))+c$. Where $\tilde{x}^{(i)} = x^{i}+u$ with $u\sim U(0,a)$ and $c=-M\times \log{a}$, $a$ is dependent on data discretization and $M$ is the dimension of $x$. This loss function encourages the network to learn to distribute data across the domain of the standard normal distribution. When there is an underlying distribution to approximate, we need to utilizes distance/divergence measures in loss function to have convergent distribution.
 
