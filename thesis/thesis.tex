@@ -285,9 +285,10 @@ Other assumptions and constraints
 Neural networks are typically optimized through variants of the gradient descent optimizers. While gradient descent is stable and efficient to train, it is very easy for it to be stuck at a high dimensional local optimum or saddle point. Various gradient free methods such as evolutionary algorithms {genetic, neuroevolution}, metaheuristic {particle swarm}, bayesian optimization {} have being applied to neural networks and each have their weaknesses. 
 \subsection{Genetic Algorithms}
 \subsection{Metaheuristic Algorithms}
-\subsection{Bayesian Optimization}
 \subsection{GAN based landscape Optimization}
+\subsection{Bayesian Optimization}
 
+\section{Variational Inference}
 \section{Markov Chain Monte Carlo}
 \subsection {Metropolis Hasting}
 Assume a distribution of a random variable $p(\theta|Y), \theta = (\bm{w},\tau)$ that we'd like to sample from that is hard to evaluate. Specifically:
@@ -313,7 +314,13 @@ it samples according to the following acceptance distribution:
 \end{gather*} 
 
 \subsection{Langevin Dynamics}
-Langevin Dynamic is a single leap frog step Hamiltonian Monte Carlo that in can be alternatively considered as adding gaussian noise to weights proposed by gradient descent algorithms. In practice it still maintains the ability to increase acceptance probability. 
+Langevin Dynamic is a single leap frog step Hamiltonian Monte Carlo that can be alternatively considered as adding gaussian noise to weights proposed by gradient descent algorithms. In practice it still maintains the ability to increase acceptance probability. It proposes weights according to the following rule: 
+\begin{gather*}
+    \text{a stub equation}
+\end{gather*}
+
+Welling 2011 \cite{StochGradLangevin} proposed stochastic langevin gradient using mini-batched training samples that does not evaluate the full dataset during each training step to accomodate big  data. This results in the removal of accept reject step in the training as it is argured that as $\Delta \bm{\theta}$ is dominated by gradient descent early and should always result in high probability of acceptance. Whereas once the network reaches a local optimum, the gaussian noise would sample its surroundings. 
+
 
 In standard LD or 1 Leap frog step of Hamilton Dynamics, there is 1 distinctive forward+backward pass in a leap frog step:
 
@@ -331,9 +338,9 @@ w\_last are reused from last iteration.
 By using a surrogate model to approximate the posterior likelihood $p(data|w_star)$ we replaced step 3's forward pass.
 
 \section{Generative Models}
-\subsection{VAE}
+\subsection{Vartiational Autoencoder (VAE)}
 \subsection{Normalizing Flow}
-\subsection{GAN}
+\subsection{Generative Adversarial Network (GAN) }
 
 The target loss function for generative model in continuous case (we care for continuous case only as we plan to use it to generate the weights) in unsupervised setting is $L(D) \approxeq \frac{1}{N}\sum_{i=1}^N - \log(p_\theta(\tilde{x}^{(i)}))+c$. Where $\tilde{x}^{(i)} = x^{i}+u$ with $u\sim U(0,a)$ and $c=-M\times \log{a}$, $a$ is dependent on data discretization and $M$ is the dimension of $x$. This loss function encourages the network to learn to distribute data across the domain of the standard normal distribution. When there is an underlying distribution to approximate, we need to utilizes distance/divergence measures in loss function to have convergent distribution.
 
@@ -450,8 +457,7 @@ Few shot learning - consider a potentially limited amount of accepted samples fo
 
 Convert a random walk in latent space to a langevin gradient in weight space
 
-
-
+Use Stochastic Langevin Gradient when in initial warm up/ burn phase, later during reaching of a plateau, use GAN to escape the local optimum. Since the GAN is learning a multimodal distribution through paralleled tempering, it should helps to explore the different weights and learn the global optimum.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \chapter{Algorithm}\label{meth}
