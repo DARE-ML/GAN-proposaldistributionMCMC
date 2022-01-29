@@ -283,6 +283,13 @@ Other assumptions and constraints
 
 \section{Optimization}
 Neural networks are typically optimized through variants of the gradient descent optimizers. While gradient descent is stable and efficient to train, it is very easy for it to be stuck at a high dimensional local optimum or saddle point. Various gradient free methods such as evolutionary algorithms {genetic, neuroevolution}, metaheuristic {particle swarm}, bayesian optimization {} have being applied to neural networks and each have their weaknesses. 
+\subsection{Benchmark Functions by Landscape group}
+Ill-conditioned, 
+
+Gaussian Type: Lunacek Bi-Rastrigin, Sphere, Schaffers F7 ill-conditioned
+
+Non Gaussian (Valley? and other?): Shifted and Rotated Expanded Schaffer F6 and the Shifted and Rotated Weierstrass
+
 \subsection{Genetic Algorithms}
 \subsection{Metaheuristic Algorithms}
 \subsection{GAN based landscape Optimization}
@@ -463,6 +470,8 @@ Few shot learning - consider a potentially limited amount of accepted samples fo
 Convert a random walk in latent space to a langevin gradient in weight space
 
 Use Stochastic Langevin Gradient when in initial warm up/ burn phase, later during reaching of a plateau, use GAN to escape the local optimum. Since the GAN is learning a multimodal distribution through paralleled tempering, it should helps to explore the different weights and learn the global optimum.
+
+To break the symmetric mode in joint weight distribution, is it possible to use tempering or treat individual layer's with separate learnable random variable variance? 
 
 \subsection{Potential uses}
 Using the posterior on weights (more accurate than variation inference) for network connection pruning? (need to look up)
