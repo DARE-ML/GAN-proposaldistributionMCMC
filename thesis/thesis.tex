@@ -291,7 +291,7 @@ Neural networks are typically optimized through variants of the gradient descent
 \section{Bayesian Deep Learning}
 Bayesian deep learning offers insight into uncertainty of model parameters and predictive distribution. 
 
-The predictive uncertainty can be decomposed further to model and data uncertainty to make inference about the data space that requires more sampling for training to reduce model uncertainty. Chai 2018 \cite{Chai2018uncertainBNN} uses variational inference to approximate the posterior distribution of model weights and thus inference about the uncertainty with respect to specific input features such as a patch of an image. 
+The predictive uncertainty can be decomposed further to model and data uncertainty to make inference about the data space that requires more sampling for training to reduce model uncertainty. Chai 2018 \cite{Chai2018uncertainBNN} uses variational inference to approximate the posterior distribution of model weights and thus inference about the uncertainty with respect to specific input features such as a patch of an image. By learning which input feature region produces more reducible (epistemic) uncertainty we can adjust how to expand our training dataset to fully cover the dataset's event/probability space. 
 
 \section{Variational Inference}
 \section{Markov Chain Monte Carlo}
@@ -463,6 +463,9 @@ Few shot learning - consider a potentially limited amount of accepted samples fo
 Convert a random walk in latent space to a langevin gradient in weight space
 
 Use Stochastic Langevin Gradient when in initial warm up/ burn phase, later during reaching of a plateau, use GAN to escape the local optimum. Since the GAN is learning a multimodal distribution through paralleled tempering, it should helps to explore the different weights and learn the global optimum.
+
+\subsection{Potential uses}
+Using the posterior on weights (more accurate than variation inference) for network connection pruning? (need to look up)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \chapter{Algorithm}\label{meth}
