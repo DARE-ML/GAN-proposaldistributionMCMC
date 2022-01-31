@@ -292,8 +292,9 @@ Non Gaussian (Valley? and other?): Shifted and Rotated Expanded Schaffer F6 and 
 
 \subsection{Genetic Algorithms}
 \subsection{Metaheuristic Algorithms}
-\subsection{GAN based landscape Optimization}
 \subsection{Bayesian Optimization}
+\subsection{Neural Network Based Optimizers}
+Neural networks have being applied as optimizers as well. Namely Opt-GAN proposed by Lu et al 2021 \cite{OPTGAN2021} uses a GAN to generate samples from latent spaces that transforms into a multivariate uniformly distribution high dimensional space that is gradually transformed to approximate the target function's landscape and eventually area around the optimum via a transition between exploration and exploitation phase controlled by hyperparameter. 
 
 \section{Bayesian Deep Learning}
 Bayesian deep learning offers insight into uncertainty of model parameters and predictive distribution. 
@@ -370,6 +371,8 @@ It is stated that divergence measures such as Jensen or KL fails to pickup the l
 More info here \href{https://lilianweng.github.io/lil-log/2017/08/20/from-GAN-to-WGAN.html}{GAN vs WGAN}
 
 short read on improved \href{https://towardsdatascience.com/demystified-wasserstein-gan-with-gradient-penalty-ba5e9b905ead}{WGAN - Gradient Penalty}
+
+Turner et al 2019 \cite{pmlr_mhgan_2019} proposed to use Metropolis Hasting sampling from the generator with the acceptance ratio based on calibrated discriminator. It was proven to generate better quality sample as the discriminator is better at rating than the generator at samping due to the latter being a harder task. It was also shown that the discriminator are generally not properly calibrated.
 
 \section{low dimensional manifold}
 (Imagine your patterned bedsheets. They've got a nice plaid grid look to them, very easy to predict what the next few centimeters of material look like.
