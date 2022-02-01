@@ -346,12 +346,15 @@ The empirical results agrees thats the time complexity with respect to epoch of 
 w\_last are reused from last iteration.
 
 By using a surrogate model to approximate the posterior likelihood $p(data|w_star)$ we replaced step 3's forward pass.
+
+
 \subsection{Application to Large Dataset}
+
 \subsubsection{Stochastic Langevin Dynamics }
 Welling 2011 \cite{StochGradLangevin} proposed stochastic langevin gradient using mini-batched training samples that does not evaluate the full dataset during each training step to accomodate big  data. This results in the removal of accept reject step in the training as it is argured that as $\Delta \bm{\theta}$ is dominated by gradient descent early and should always result in high probability of acceptance. Whereas once the network reaches a local optimum, the gaussian noise would sample its surroundings. 
 
 \subsubsection{Minibatch Metropolis Hasting}
-Seita et al 2018 \cite{ijcai2018-753} followed the work of others (not sure whether to cite) and propose to increase the amount of samples inside a current mini-batch if it fails to satisify a certain constraint. It is not tested with langevin gradient (still reading).
+Seita et al 2018 \cite{ijcai2018-753} followed the work of others (not sure whether to cite) and propose to increase the amount of samples inside a current mini-batch if it fails to satisify a certain constraint. However, the proposed algorithm relies on evaluated the additional samples as the minibatch increases in size. This means that if the initial minibatch size is not sufficient, it might take a really long time to find the optimal batch that approximates the full dataset. It is not tested with langevin gradient (still reading). 
 
 \section{Generative Models}
 \subsection{Vartiational Autoencoder (VAE)}
@@ -430,6 +433,28 @@ OF MARKOV CHAINS
 
 \noindent Packages of interest include pymc, pyro, pytorch, (maybe  sydney-machine-learning/pingala?)
 
+\chapter{Challenges}
+As we consider the weights in a neural network encoded sequentially, this means the weight space will have an exponential amount of "quasi-symmetric" (is this the right word?) local optimal modes as switching the order of weights in a layer and its corresponding connections to the next layer does not change the network's state.
+
+overfitting of GAN that leads to no escape of local optimum during training or heatup. 
+
+Potential Solutions:
+\begin{itemize}
+\item use exploration/ exploitation 
+\item maybe solvable with parallel tempering with different loss penalty in wgan?)
+\end{itemize}
+
+Solving the detailed balance condition of using GAN. because of generating from normal. we need to consider the probability transformation.
+Tasks and potential solutions:
+\begin{itemize}
+\item use flow based GAN or flow
+\item calculate the invertible functions and the respective post transform distribution of GAN
+\item embarassingly ignore it?
+\item look up stuff on invertible GAN, invertible conditional GAN, and other stuff. 
+\item use different acceptance test like the one in Metropolis Hasting GAN
+\item generate the lanvegin $q(\theta*|\theta_l)$ probability and the corresponding weight together.
+\end{itemize}
+
 \chapter{Proposal}
 
 \section{Proposal}
@@ -446,24 +471,6 @@ For this GAN to be benificial, it has several constraints:
     \item approximates the full posterior $p(w|data)$.
 \end{enumerate}
 
-\section{Potential Challenges}
-overfitting of GAN that leads to no escape of local optimum during training or heatup. 
-
-Potential Solutions:
-\begin{itemize}
-\item use exploration/ exploitation 
-\item maybe solvable with parallel tempering with different loss penalty in wgan?)
-\end{itemize}
-
-Solving the detailed balance condition of using GAN. because of generating from normal. we need to consider the probability transformation.
-Tasks and potential solutions:
-\begin{itemize}
-\item use flow based GAN or flow
-\item calculate the invertible functions and the respective post transform distribution of GAN
-\item embarassingly ignore it?
-\item look up stuff on invertible GAN, invertible conditional GAN, and other stuff.
-\item generate the lanvegin $q(\theta*|\theta_l)$ probability and the corresponding weight together.
-\end{itemize}
 
 
 \section{Random Ideas}
