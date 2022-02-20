@@ -76,24 +76,25 @@ class RastriginRandomWalkNormPrior(Rastrigin):
         self.prior_std = prior_std
     def proposal_dist(self, lastsample):
         # assume points from normal distriution with variance 4. RANDOM WALK
-        multnorm = torch.distributions.Normal(loc = lastsample, scale = torch.ones(self.dimension)*0.1)
+        multnorm = torch.distributions.Normal(loc = lastsample, scale = torch.ones(self.dimension)*self.prop_std)
         return multnorm
     def prior(self):        
         # assume points from prior
-        multnorm = torch.distributions.Normal(loc = torch.zeros(self.dimension), scale = torch.ones(self.dimension)*2)
+        multnorm = torch.distributions.Normal(loc = torch.zeros(self.dimension), scale = torch.ones(self.dimension)*self.prior_std)
         return multnorm
 
 from scipy.stats import truncnorm
 class TruncNorm:
     def __init__(self, mean = 0, std = 1, low_bound = -float('inf'), up_bound= float('inf')):
-        self.low = low_bound
-        self.high = high_bound
+        self.mylow = low_bound
+        self.myup  = up_bound
         self.mean = mean
         self.std = std
+        self.low, self.high = (self.mylow - mean) / std, (self.myup - mean) / std
     def sample(self):
-        return truncnorm.rvs(a=self.low,b=self.high,loc=self.mean,scale = self.std)
+        return torch.Tensor(truncnorm.rvs(a=self.low,b=self.high,loc=self.mean,scale = self.std))
     def log_prob(self,sample):
-        return truncnorm.logpdf(sample,a=self.low,b=self.high,loc=self.mean,scale = self.std)
+        return torch.Tensor(truncnorm.logpdf(sample,a=self.low,b=self.high,loc=self.mean,scale = self.std))
 class RastriginTruncNorm(Rastrigin):
     def __init__(self,totalsamples,dimension=2,proposal_std=0.1,prior_std=2):
         super().__init__(totalsamples,dimension)
@@ -115,7 +116,7 @@ class RastriginTruncNorm(Rastrigin):
             std = torch.ones(self.dimension)*4, 
             low_bound= -5.14, up_bound = 5.14
         ) 
-        return multnorm
+        return truncmultnorm
 class Regress1(TargetDistribution):
     pass
 class Regress1ParallelTempering(TargetDistribution):
