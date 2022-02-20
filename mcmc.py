@@ -40,10 +40,8 @@ class TargetDistribution(ABC):
         
 
 class Rastrigin(TargetDistribution):
-    def __init__(self,totalsamples,dimension=2, proposal_type = "unif"):
+    def __init__(self,totalsamples,dimension=2):
         super().__init__(totalsamples,dimension)
-        ... #unif or normal 
-        self.proposal_type = proposal_type
     def init_theta(self):
         first_sample = torch.Tensor([3,3])
         first_sample_likelihood = self.log_likelihood(first_sample)
@@ -72,15 +70,52 @@ class RastriginRandomWalkUnifPrior(Rastrigin):
         return multunif
 
 class RastriginRandomWalkNormPrior(Rastrigin):
+    def __init__(self,totalsamples,dimension=2,proposal_std=0.1,prior_std=2):
+        super().__init__(totalsamples,dimension)
+        self.prop_std = proposal_std
+        self.prior_std = prior_std
     def proposal_dist(self, lastsample):
         # assume points from normal distriution with variance 4. RANDOM WALK
-        multnorm = torch.distributions.Normal(loc = lastsample, scale = torch.Tensor([0.1,0.1]))
+        multnorm = torch.distributions.Normal(loc = lastsample, scale = torch.ones(self.dimension)*0.1)
         return multnorm
     def prior(self):        
         # assume points from prior
-        multnorm = torch.distributions.Normal(loc = torch.Tensor([0,0]), scale = torch.Tensor([2,2]))
+        multnorm = torch.distributions.Normal(loc = torch.zeros(self.dimension), scale = torch.ones(self.dimension)*2)
         return multnorm
 
+from scipy.stats import truncnorm
+class TruncNorm:
+    def __init__(self, mean = 0, std = 1, low_bound = -float('inf'), up_bound= float('inf')):
+        self.low = low_bound
+        self.high = high_bound
+        self.mean = mean
+        self.std = std
+    def sample(self):
+        return truncnorm.rvs(a=self.low,b=self.high,loc=self.mean,scale = self.std)
+    def log_prob(self,sample):
+        return truncnorm.logpdf(sample,a=self.low,b=self.high,loc=self.mean,scale = self.std)
+class RastriginTruncNorm(Rastrigin):
+    def __init__(self,totalsamples,dimension=2,proposal_std=0.1,prior_std=2):
+        super().__init__(totalsamples,dimension)
+        self.prop_std = proposal_std
+        self.prior_std = prior_std
+    def proposal_dist(self, lastsample):
+        # assume points from normal distriution with variance 4. RANDOM WALK
+        truncmultnorm = TruncNorm(
+            mean = lastsample,
+            std = torch.ones(self.dimension)*4, 
+            low_bound= -5.14, up_bound = 5.14
+        )
+        return truncmultnorm 
+    def prior(self):        
+        # assume points from prior
+        #multnorm = torch.distributions.Normal(loc = torch.zeros(self.dimension), scale = torch.ones(self.dimension)*2)
+        truncmultnorm = TruncNorm(
+            mean = torch.zeros(self.dimension),
+            std = torch.ones(self.dimension)*4, 
+            low_bound= -5.14, up_bound = 5.14
+        ) 
+        return multnorm
 class Regress1(TargetDistribution):
     pass
 class Regress1ParallelTempering(TargetDistribution):
@@ -103,15 +138,13 @@ class Normal2D(TargetDistribution):
         # coincidencially identical to proposal
         pass
 class MetropolisHasting:
-    def __init__(self,totalsamples,distributionclass):
-        self.totalsamples = totalsamples
-        self.target = distributionclass(self.totalsamples)
-        
+    def __init__(self,targetdistribution):
+        self.target = targetdistribution #distributionclass(self.totalsamples)
     def performSample(self):
         # init first sample
         self.target.init_theta()
         
-        for i in range(1,self.totalsamples):
+        for i in range(1,self.target.totalsamples):
             # generate proposal theta* \sim q(theta|theta_last)
             theta_last = self.target.last_sample()
             theta_prop = self.target.proposal_dist(theta_last).sample()
@@ -148,20 +181,23 @@ class MetropolisHasting:
                 self.target.reject()
 
 if __name__ == "__main__":
-    mhsampler = MetropolisHasting(10000,RastriginRandomWalk)
-    mhsampler.performSample()
-    print(mhsampler.target._last_sample_index)
-    
-    X = mhsampler.target._samples_store
-    import matplotlib.pyplot as plt
-    #plt.scatter(X[:, 0], X[:, 1])#, s=50, c = truth)
-    #plt.title(f"Rastrigin sampling")
-    #plt.xlabel("x")
-    #plt.ylabel("y")
-    #plt.show()
+    for i in range(2):
+        total_samples = 10000
+        dist = RastriginRandomWalkNormPrior(total_samples,proposal_std=0.1,prior_std=2)
+        mhsampler = MetropolisHasting(dist)
+        mhsampler.performSample()
+        print(mhsampler.target._last_sample_index)
 
-    x,y = X[:,0].numpy(), X[:,1].numpy()
-    h =plt.hist2d(x, y,bins = 100)
-    plt.colorbar(h[3])
-    plt.show()
-    bp = -1
+        X = mhsampler.target._samples_store
+        import matplotlib.pyplot as plt
+        #plt.scatter(X[:, 0], X[:, 1])#, s=50, c = truth)
+        #plt.title(f"Rastrigin sampling")
+        #plt.xlabel("x")
+        #plt.ylabel("y")
+        #plt.show()
+
+        x,y = X[:,0].numpy(), X[:,1].numpy()
+        h =plt.hist2d(x, y,bins = 100)
+        plt.colorbar(h[3])
+        plt.show()
+        bp = -1
