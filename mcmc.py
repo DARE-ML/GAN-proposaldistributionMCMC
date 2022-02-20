@@ -104,7 +104,7 @@ class RastriginTruncNorm(Rastrigin):
         # assume points from normal distriution with variance 4. RANDOM WALK
         truncmultnorm = TruncNorm(
             mean = lastsample,
-            std = torch.ones(self.dimension)*4, 
+            std = torch.ones(self.dimension)*self.prop_std, 
             low_bound= -5.14, up_bound = 5.14
         )
         return truncmultnorm 
@@ -113,7 +113,7 @@ class RastriginTruncNorm(Rastrigin):
         #multnorm = torch.distributions.Normal(loc = torch.zeros(self.dimension), scale = torch.ones(self.dimension)*2)
         truncmultnorm = TruncNorm(
             mean = torch.zeros(self.dimension),
-            std = torch.ones(self.dimension)*4, 
+            std = torch.ones(self.dimension)*self.prior_std, 
             low_bound= -5.14, up_bound = 5.14
         ) 
         return truncmultnorm
