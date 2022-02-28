@@ -72,7 +72,7 @@ class VanillaTrain:
         y = torch.zeros([self.genBatchSize,1],device = self.device)
         x = self.discriminator(fake_batch)
         self.goptim.zero_grad()
-        gloss = torch.nn.BCELoss()(x,y)
+        gloss = -torch.nn.BCELoss()(x,y)
         gloss.backward()
         self.goptim.step()
 class VanillaTrain_label(VanillaTrain):
@@ -112,7 +112,7 @@ class VanillaTrainTogether(VanillaTrain):
         latentdim:      tuple
     ):
         super().__init__(epochs,goptim,doptim,generator,discriminator,dataloader,latentdim)
-        self.viewFreq = 10 # epochs
+        self.viewFreq = 5 # epochs
 
     def train(self):
         for e in range(self.epochs):
@@ -140,7 +140,7 @@ class VanillaTrainTogether(VanillaTrain):
         y = torch.zeros([batch.shape[0],1],device = self.device)
         x = self.discriminator(fake_batch)
         self.goptim.zero_grad()
-        gloss = torch.nn.BCELoss()(x,y)
+        gloss = -torch.nn.BCELoss()(x,y)
         gloss.backward()
         self.goptim.step()
     #@abstractmethod
@@ -161,7 +161,9 @@ class VanillaTrainTogether_MNIST(VanillaTrainTogether):
                 self.trainDisc(minibatch)
                 self.trainGen(minibatch)
             if (e+1)%self.viewFreq == 0:
+                print("epoch:",e+1)
                 self.view()
+                
     def view(self):
         #start_time = time.time()
         plt.rcParams['image.cmap'] = 'gray'
@@ -171,14 +173,16 @@ class VanillaTrainTogether_MNIST(VanillaTrainTogether):
             for index, image in enumerate(images):
                 plt.subplot(sqrtn, sqrtn, index+1)
                 plt.imshow(image.reshape(28, 28))
-        fake_images = self.generator(self.latent.sample(torch.size(16,self.latentdim)))
+            plt.show()
+        fake_images = self.generator(self.latent.sample(torch.Size([16,*self.latentdim])).to(self.device) ).cpu().detach().numpy()
+        fake_images = (fake_images+1.0)/2.0
         show_images(fake_images)
 
 from torch import autograd
 class WassensteinGPTogetherTrain(VanillaTrainTogether):
     def trainDisc(self,batch):
         # sample from latent
-        lat = self.latent.sample(torch.Size([minibatch.shape[0],*self.latentdim])).to(self.device)
+        lat = self.latent.sample(torch.Size([batch.shape[0],*self.latentdim])).to(self.device)
         fake_batch = self.generator(lat)
         # sample from data
         ...
@@ -186,8 +190,8 @@ class WassensteinGPTogetherTrain(VanillaTrainTogether):
         self.doptim.zero_grad()
         dloss = ( 
             self.discriminator(fake_batch).mean() -
-            self.discriminator(minibatch).mean() +
-            self.compute_gp(self.discriminator,minibatch.to(self.device),fake_batch)
+            self.discriminator(batch).mean() +
+            self.compute_gp(self.discriminator,batch.to(self.device),fake_batch)
         ) 
         dloss.backward()
         self.doptim.step()
@@ -227,5 +231,28 @@ class WassensteinGPTogetherTrain(VanillaTrainTogether):
         gradients = gradients.view(batch_size, -1)
         grad_norm = gradients.norm(2, 1)
         return torch.mean((grad_norm - 1) ** 2)
-class MixtureSimplexTrain(VanillaTrain):
-    pass
+class MixtureSimplexTrain(VanillaTrainTogether):
+    def trainDisc(self,batch):
+        # sample from latent
+        lat = self.latent.sample(torch.Size([batch.shape[0],*self.latentdim])).to(self.device)
+        fake_batch = self.generator(lat)
+        # sample from data
+        ...
+        # update disc
+        self.doptim.zero_grad()
+        dloss = ( 
+            self.discriminator(fake_batch).mean() -
+            self.discriminator(batch).mean() +
+            self.compute_gp(self.discriminator,batch.to(self.device),fake_batch)
+        ) 
+        dloss.backward()
+        self.doptim.step()
+    def trainGen(self,batch):
+        # sample from latent
+        lat = self.latent.sample(torch.Size([self.genBatchSize,*self.latentdim])).to(self.device)
+        fake_batch = self.generator(lat)
+        # update gen
+        self.goptim.zero_grad()
+        gloss = -self.discriminator(fake_batch).mean()
+        gloss.backward()
+        self.goptim.step()
