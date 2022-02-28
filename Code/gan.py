@@ -118,8 +118,8 @@ class VanillaTrainTogether(VanillaTrain):
         for e in range(self.epochs):
             for b,minibatch in enumerate(self.dataloader):
                 minibatch = minibatch.to(self.device)
-                self.trainDisc(minibatch)
-                self.trainGen(minibatch)
+                dloss = self.trainDisc(minibatch)
+                gloss = self.trainGen(minibatch)
     def trainDisc(self,batch):
         # sample from latent
         lat = self.latent.sample(torch.Size([batch.shape[0],*self.latentdim])).to(self.device)
@@ -133,6 +133,7 @@ class VanillaTrainTogether(VanillaTrain):
         dloss = torch.nn.BCELoss()(x,y)
         dloss.backward()
         self.doptim.step()
+        return dloss
     def trainGen(self,batch):
         lat = self.latent.sample(torch.Size([batch.shape[0],*self.latentdim])).to(self.device)
         fake_batch = self.generator(lat)
@@ -143,6 +144,7 @@ class VanillaTrainTogether(VanillaTrain):
         gloss = -torch.nn.BCELoss()(x,y)
         gloss.backward()
         self.goptim.step()
+        return gloss
     #@abstractmethod
     #def view(self):
     #    pass
@@ -159,10 +161,10 @@ class VanillaTrainTogether_MNIST(VanillaTrainTogether):
         for e in range(self.epochs):
             for b,(minibatch,_unused_label) in enumerate(self.dataloader):
                 minibatch = minibatch.to(self.device)
-                self.trainDisc(minibatch)
-                self.trainGen(minibatch)
+                dloss = self.trainDisc(minibatch)
+                gloss = self.trainGen(minibatch)
                 if (b+1)%100 == 0:
-                    print("[",b,"/",len(self.dataloader),"]")
+                    print("[",b,"/",len(self.dataloader),"]"," Disc Loss: ",dloss.item(), " Gen Loss: ",gloss.item())
             if True:#(e+1)%self.viewFreq == 0:
                 print("epoch:",e+1)
                 self.view()
@@ -198,6 +200,7 @@ class WassensteinGPTogetherTrain_MNIST(VanillaTrainTogether_MNIST):
         ) 
         dloss.backward()
         self.doptim.step()
+        return dloss
     def trainGen(self,batch):
         # sample from latent
         lat = self.latent.sample(torch.Size([self.genBatchSize,*self.latentdim])).to(self.device)
@@ -207,11 +210,12 @@ class WassensteinGPTogetherTrain_MNIST(VanillaTrainTogether_MNIST):
         gloss = -self.discriminator(fake_batch).mean()
         gloss.backward()
         self.goptim.step()
+        return gloss
     # copied from https://towardsdatascience.com/demystified-wasserstein-gan-with-gradient-penalty-ba5e9b905ead
     def compute_gp(self, discriminator, real_data, fake_data):
         batch_size = real_data.size(0)
         # Sample Epsilon from uniform distribution
-        eps = torch.rand(batch_size, *real_data.shape[1:]).to(real_data.device)
+        eps = torch.rand(batch_size, *[1]*len(real_data.shape[1:])).to(real_data.device)
         eps = eps.expand_as(real_data)
         
         # Interpolation between real data and fake data.
