@@ -117,6 +117,7 @@ class VanillaTrainTogether(VanillaTrain):
     def train(self):
         for e in range(self.epochs):
             for b,minibatch in enumerate(self.dataloader):
+                minibatch = minibatch.to(self.device)
                 self.trainDisc(minibatch)
                 self.trainGen(minibatch)
     def trainDisc(self,batch):
@@ -127,8 +128,7 @@ class VanillaTrainTogether(VanillaTrain):
         ...
         # update disc
         y = torch.cat( (torch.ones([batch.shape[0],1],device = self.device),torch.zeros([batch.shape[0],1],device = self.device)) )
-        y.to(self.device)
-        x = self.discriminator(torch.cat((batch.to(self.device),fake_batch)))
+        x = self.discriminator(torch.cat((batch,fake_batch)))
         self.doptim.zero_grad()
         dloss = torch.nn.BCELoss()(x,y)
         dloss.backward()
@@ -158,9 +158,12 @@ class VanillaTrainTogether_MNIST(VanillaTrainTogether):
     def train(self):
         for e in range(self.epochs):
             for b,(minibatch,_unused_label) in enumerate(self.dataloader):
+                minibatch = minibatch.to(self.device)
                 self.trainDisc(minibatch)
                 self.trainGen(minibatch)
-            if (e+1)%self.viewFreq == 0:
+                if (b+1)%100 == 0:
+                    print("[",b,"/",len(self.dataloader),"]")
+            if True:#(e+1)%self.viewFreq == 0:
                 print("epoch:",e+1)
                 self.view()
                 
@@ -179,7 +182,7 @@ class VanillaTrainTogether_MNIST(VanillaTrainTogether):
         show_images(fake_images)
 
 from torch import autograd
-class WassensteinGPTogetherTrain(VanillaTrainTogether):
+class WassensteinGPTogetherTrain_MNIST(VanillaTrainTogether_MNIST):
     def trainDisc(self,batch):
         # sample from latent
         lat = self.latent.sample(torch.Size([batch.shape[0],*self.latentdim])).to(self.device)
@@ -208,7 +211,7 @@ class WassensteinGPTogetherTrain(VanillaTrainTogether):
     def compute_gp(self, discriminator, real_data, fake_data):
         batch_size = real_data.size(0)
         # Sample Epsilon from uniform distribution
-        eps = torch.rand(batch_size, 1, 1, 1).to(real_data.device)
+        eps = torch.rand(batch_size, *real_data.shape[1:]).to(real_data.device)
         eps = eps.expand_as(real_data)
         
         # Interpolation between real data and fake data.
