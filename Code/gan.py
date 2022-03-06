@@ -238,27 +238,38 @@ class WassensteinGPTogetherTrain_MNIST(VanillaTrainTogether_MNIST):
         gradients = gradients.view(batch_size, -1)
         grad_norm = gradients.norm(2, 1)
         return torch.mean((grad_norm - 1) ** 2)
-from simplex import simplex_params
+from .simplex import simplex_params
 import torch.distributions as D 
+from scipy import optimize
 class MixtureGaus:
-    def __init__(self,disc_dimension=3,sigma_scale = 0.05):
+    def __init__(self,disc_dimension=9,sigma_scale = 0.25):
         # the number of modes/standard normal = number of vertices in a simplex:
         #   the same as disc_dimension + 1, i.e. 2d = triangle(3 vertices), 3d = tetrahedron(4 vertices), 
         # in the paper, the h-param are set as follow: 
         # disc_dimension = 9: -> 10 gaus mode 
         # sigma_scale = 0.25: -> individual std of 0.5
         # distance between each mode is 1
+        self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
         self.mu, self.sigma, self.weight = simplex_params(disc_dimension)
         # default sigma is independent and of scale 0.25, let it be smaller
-        self.gaus = D.Independent(D.MultivariateNormal(torch.tensor(self.mu),torch.tensor(self.sigma/0.25*sigma_scale)),0)
-        self.weight = D.Categorical(torch.tensor(weight))
-        self.gausMixture = D.MixtureSameFamily(self.weight,self.gaus)
+        self.gaus = D.Independent(D.MultivariateNormal(
+            torch.tensor(self.mu).to(self.device),torch.tensor(self.sigma/0.25*sigma_scale).to(self.device)
+        ),0)
+        self.c_weight = D.Categorical(torch.tensor(self.weight))
+        self.gausMixture = D.MixtureSameFamily(self.c_weight,self.gaus)
         # the max of pdf should be close to one of the modes, i.e. use that as a starter point to optimize
         
-        _xopt , fopt, _iter, _funcalls, _warnflag = optimize.fmin(lambda x:(-torch.exp(self.gausMixture.log_prob(x)) ), 
-            self.mu[0,:,:].detach().clone(),maxiter = 100,full_output=True) 
-        self.num_tol = 1e-8 #numerical tolerance 
-        self.maxval = -fopt + self.num_tol
+        #_xopt , fopt, _iter, _funcalls, _warnflag = optimize.fmin(lambda x:(-torch.exp(self.gausMixture.log_prob(x)) ), 
+        #    self.mu[0,:].detach().clone(),maxiter = 100,full_output=True) 
+
+        #maxiter = 2000 works for up to (9 dim 10 mode)        
+        _xopt , fopt, _iter, _funcalls, _warnflag = optimize.fmin(lambda x:(-self.gausMixture.log_prob(torch.FloatTensor(x).to(self.device)) ), 
+            torch.FloatTensor(self.mu[0,:]).to(self.device),maxiter = 2000,full_output=True) 
+
+        # numerical tolerance
+        self.num_tol = 1e-8  
+        # maxval to be used for in loss function, it is the true prob, not log_prob
+        self.maxval = (torch.exp(self.gausMixture.log_prob(torch.FloatTensor(_xopt))) + self.num_tol).to(self.device)
         #return self.loss(x,y)
 class MixtureSimplexTrainTogether_MNIST(VanillaTrainTogether_MNIST):    
     def __init__(self,
@@ -270,7 +281,7 @@ class MixtureSimplexTrainTogether_MNIST(VanillaTrainTogether_MNIST):
         dataloader:     torch.utils.data.Dataset,
         latentdim:      tuple,
         disc_dimension: int                         =9,
-        sigma_scale:    float                       =0.05
+        sigma_scale:    float                       =0.25
     ):
         super().__init__(epochs,goptim,doptim,generator,discriminator,dataloader,latentdim)
         self.mixture = MixtureGaus(disc_dimension=disc_dimension,sigma_scale=sigma_scale)
@@ -282,7 +293,6 @@ class MixtureSimplexTrainTogether_MNIST(VanillaTrainTogether_MNIST):
         ...
         # update disc
         self.doptim.zero_grad()
-        dloss = torch.log().mean()
         # this is a target to maximize so mult by -1
         dloss = - (
             self.mixture.gausMixture.log_prob(self.discriminator(batch)).mean() +
