@@ -2,6 +2,13 @@ import torch
 from torch import nn
 from abc import ABC, abstractmethod
 
+###############################
+#
+# NEED TO REFACTOR WITH FACTORY PATTERN
+#
+###############################
+
+
 class Generator(nn.Module):
     pass
 class Discriminator(nn.Module):
@@ -345,6 +352,24 @@ class MixtureSimplexTrainTogether(VanillaTrainTogether):
     ):
         super().__init__(epochs,goptim,doptim,generator,discriminator,dataloader,latentdim)
         self.mixture = MixtureGaus(disc_dimension=disc_dimension,sigma_scale=sigma_scale)
+    def viewDensity(self):
+        latent_sample = torch.randn(1000,2).to(self.device)
+        fake = self.generator(latent_sample).detach().cpu().numpy()
+        #plt.scatter(fake[:,0],fake[:,1])
+        #plt.show()
+        plt.hist2d(fake[:,0],fake[:,1],bins=50)
+        plt.show()
+    def train(self):
+        for e in range(self.epochs):
+            for b,minibatch in enumerate(self.dataloader):
+                minibatch = minibatch.to(self.device)
+                dloss = self.trainDisc(minibatch)
+                gloss = self.trainGen(minibatch)
+                #if (b+1)%100 == 0:
+            if (e+1)%10 == 0:
+                print("epoch:",e+1)
+                print("[",b,"/",len(self.dataloader),"]"," Disc Loss: ",dloss.item(), " Gen Loss: ",gloss.item())
+                self.viewDensity()
     def trainDisc(self,batch):
         # sample from latent
         lat = self.latent.sample(torch.Size([batch.shape[0],*self.latentdim])).to(self.device)
