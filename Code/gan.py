@@ -250,27 +250,38 @@ class MixtureGaus:
         # sigma_scale = 0.25: -> individual std of 0.5
         # distance between each mode is 1
         self.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+        
+        self.sigma_scale = sigma_scale
         self.mu, self.sigma, self.weight = simplex_params(disc_dimension)
         # default sigma is independent and of scale 0.25, let it be smaller
         self.gaus = D.Independent(D.MultivariateNormal(
-            torch.tensor(self.mu).to(self.device),torch.tensor(self.sigma/0.25*sigma_scale).to(self.device)
+            torch.tensor(self.mu).to(self.device),
+            torch.tensor(self.sigma/0.25*sigma_scale).to(self.device)
         ),0)
-        self.c_weight = D.Categorical(torch.tensor(self.weight))
+        self.c_weight = D.Categorical(torch.tensor(self.weight).to(self.device))
         self.gausMixture = D.MixtureSameFamily(self.c_weight,self.gaus)
+
+        self.findMax()
+
+    def findMax(self):
         # the max of pdf should be close to one of the modes, i.e. use that as a starter point to optimize
-        
-        #_xopt , fopt, _iter, _funcalls, _warnflag = optimize.fmin(lambda x:(-torch.exp(self.gausMixture.log_prob(x)) ), 
-        #    self.mu[0,:].detach().clone(),maxiter = 100,full_output=True) 
+        #maxiter = 2000 works for up to (9 dim 10 mode)     
+        gaus_cpu = D.Independent(D.MultivariateNormal(
+            torch.tensor(self.mu),
+            torch.tensor(self.sigma/0.25*self.sigma_scale)
+        ),0)
+        c_weight_cpu = D.Categorical(torch.tensor(self.weight))
+        gausMixture_cpu = D.MixtureSameFamily(c_weight_cpu,gaus_cpu)
 
-        #maxiter = 2000 works for up to (9 dim 10 mode)        
-        _xopt , fopt, _iter, _funcalls, _warnflag = optimize.fmin(lambda x:(-self.gausMixture.log_prob(torch.FloatTensor(x).to(self.device)) ), 
-            torch.FloatTensor(self.mu[0,:]).to(self.device),maxiter = 2000,full_output=True) 
 
+        _xopt , fopt, _iter, _funcalls, _warnflag = optimize.fmin(lambda x:(-gausMixture_cpu.log_prob(torch.FloatTensor(x)) ), 
+            torch.FloatTensor(self.mu[0,:]),maxiter = 2000,full_output=True) 
         # numerical tolerance
         self.num_tol = 1e-8  
         # maxval to be used for in loss function, it is the true prob, not log_prob
-        self.maxval = (torch.exp(self.gausMixture.log_prob(torch.FloatTensor(_xopt))) + self.num_tol).to(self.device)
-        #return self.loss(x,y)
+        self._lg_maxval = self.gausMixture.log_prob(torch.FloatTensor(_xopt).to(self.device))
+        self.maxval = torch.exp(self.gausMixture.log_prob(torch.FloatTensor(_xopt).to(self.device))) + self.num_tol
+
 class MixtureSimplexTrainTogether_MNIST(VanillaTrainTogether_MNIST):    
     def __init__(self,
         epochs:         int, 
@@ -298,11 +309,13 @@ class MixtureSimplexTrainTogether_MNIST(VanillaTrainTogether_MNIST):
             self.mixture.gausMixture.log_prob(self.discriminator(batch)).mean() +
             torch.log(
                 self.mixture.maxval - 
+                #1-
                 torch.exp(self.mixture.gausMixture.log_prob(self.discriminator(fake_batch)))
             ).mean()
         )
         dloss.backward()
         self.doptim.step()
+        return dloss
     def trainGen(self,batch):
         # sample from latent
         lat = self.latent.sample(torch.Size([self.genBatchSize,*self.latentdim])).to(self.device)
@@ -311,7 +324,58 @@ class MixtureSimplexTrainTogether_MNIST(VanillaTrainTogether_MNIST):
         self.goptim.zero_grad()
         gloss = torch.log(
             self.mixture.maxval - 
-            torch.exp(self.mixture.gausMixture.log_prob(self.discriminator(fake_batch).mean()))
+            #1-
+            torch.exp(self.mixture.gausMixture.log_prob(self.discriminator(fake_batch)))
         ).mean()
         gloss.backward()
         self.goptim.step()
+        return gloss
+
+class MixtureSimplexTrainTogether(VanillaTrainTogether):    
+    def __init__(self,
+        epochs:         int, 
+        goptim:         torch.optim.Optimizer,
+        doptim:         torch.optim.Optimizer,
+        generator:      torch.nn.Module, 
+        discriminator:  torch.nn.Module, 
+        dataloader:     torch.utils.data.Dataset,
+        latentdim:      tuple,
+        disc_dimension: int                         =9,
+        sigma_scale:    float                       =0.25
+    ):
+        super().__init__(epochs,goptim,doptim,generator,discriminator,dataloader,latentdim)
+        self.mixture = MixtureGaus(disc_dimension=disc_dimension,sigma_scale=sigma_scale)
+    def trainDisc(self,batch):
+        # sample from latent
+        lat = self.latent.sample(torch.Size([batch.shape[0],*self.latentdim])).to(self.device)
+        fake_batch = self.generator(lat)
+        # sample from data
+        ...
+        # update disc
+        self.doptim.zero_grad()
+        # this is a target to maximize so mult by -1
+        dloss = - (
+            self.mixture.gausMixture.log_prob(self.discriminator(batch)).mean() +
+            torch.log(
+                self.mixture.maxval - 
+                #1-
+                torch.exp(self.mixture.gausMixture.log_prob(self.discriminator(fake_batch)))
+            ).mean()
+        )
+        dloss.backward()
+        self.doptim.step()
+        return dloss
+    def trainGen(self,batch):
+        # sample from latent
+        lat = self.latent.sample(torch.Size([self.genBatchSize,*self.latentdim])).to(self.device)
+        fake_batch = self.generator(lat)
+        # update gen
+        self.goptim.zero_grad()
+        gloss = torch.log(
+            self.mixture.maxval - 
+            #1-
+            torch.exp(self.mixture.gausMixture.log_prob(self.discriminator(fake_batch)))
+        ).mean()
+        gloss.backward()
+        self.goptim.step()
+        return gloss
