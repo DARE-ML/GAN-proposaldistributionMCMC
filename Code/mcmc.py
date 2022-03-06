@@ -138,6 +138,13 @@ class Normal2D(TargetDistribution):
     def prior(self):
         # coincidencially identical to proposal
         pass
+class GenericGAN:
+    def __init__(self):
+        pass
+    def propose(self):
+        pass
+    def proposal_dist(self,condition):
+        pass
 class MetropolisHasting:
     def __init__(self,targetdistribution):
         self.target = targetdistribution #distributionclass(self.totalsamples)
@@ -181,6 +188,50 @@ class MetropolisHasting:
                 #reject proposal
                 self.target.reject()
 
+class MetropolisHasting2GAN:
+    def __init__(self,targetdistribution):
+        self.target = targetdistribution #distributionclass(self.totalsamples)
+    def performSample(self):
+        # init first sample
+        self.target.init_theta()
+        
+        for i in range(1,self.target.totalsamples):
+            # generate proposal theta* \sim q(theta|theta_last)
+            theta_last = self.target.last_sample()
+            theta_prop = self.target.proposal_dist(theta_last).sample()
+
+            log_proposal_ratio = ( 
+                torch.sum(self.target.proposal_dist(theta_prop).log_prob(theta_last)) - 
+                torch.sum(self.target.proposal_dist(theta_last).log_prob(theta_prop))
+            )
+            log_prior_ratio = (
+                torch.sum(self.target.prior().log_prob(theta_prop)) - 
+                torch.sum(self.target.prior().log_prob(theta_last))
+            )
+            prop_likelihood = torch.sum(self.target.log_likelihood(theta_prop)) 
+            log_likelihood_ratio = (
+                prop_likelihood - 
+                torch.sum(self.target.log_likelihood_iter(i-1)  )             
+            )
+            # u \sim U(0,1)
+            u = torch.rand(1)
+
+            #accept reject
+            # min(1, pi(w*|x)/pi(wi|x) *  q(wi|w*)/q(w*|wi) )    
+            # min(1, pi(x|w*)/pi(x|wi) * p(w*)/p(wi) *  q(wi|w*)/q(w*|wi) )    
+            
+            try:
+                alpha = min(1, torch.exp(log_likelihood_ratio + log_proposal_ratio + log_prior_ratio))
+            except OverflowError as e:
+                alpha = 1
+            if u < alpha:
+                #accept proposal
+                self.target.accept(theta_prop,prop_likelihood)
+            else:
+                #reject proposal
+                self.target.reject()
+            if i%1000 == 0:
+                yield self.target
 if __name__ == "__main__":
     for i in range(2):
         total_samples = 10000
