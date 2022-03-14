@@ -21,7 +21,7 @@ class TargetDistribution(ABC):
     def log_likelihood(self,sample):
         pass
     @abstractmethod
-    def init_theta(self):
+    def init_theta(self,n_chains = 1):
         pass
 
     def log_likelihood_iter(self,i):
@@ -42,7 +42,7 @@ class TargetDistribution(ABC):
 class Rastrigin(TargetDistribution):
     def __init__(self,totalsamples,dimension=2):
         super().__init__(totalsamples,dimension)
-    def init_theta(self):
+    def init_theta(self,n_chains = 1):
         first_sample = torch.Tensor([3,3])
         first_sample_likelihood = self.log_likelihood(first_sample)
         self.accept(first_sample,first_sample_likelihood)
@@ -138,7 +138,52 @@ class Normal2D(TargetDistribution):
     def prior(self):
         # coincidencially identical to proposal
         pass
-class GenericGAN:
+from torch import nn
+class MHGAN_paper:
+    def __init__(self,
+        gen:nn.Module,
+        dis:nn.Module,
+        gen_latent: callable,
+        target: TargetDistribution,
+        device: str
+    ):
+        self.gen = gen
+        self.gen_latent = gen_latent
+        self.dis = dis
+        self.target = target
+        # n chains:
+        self.nchains = self.batch_size = 100
+        self.device = device
+    def accept_prob(self,propose_prob,last_prob):
+        # a = min(1,(D(xk)^-1 -1)/(D(x')^-1 -1) )
+        return torch.min(1.0,(1.0/last_prob - 1)/(1.0/propose_prob - 1)  )
+    def performSample_vectorized(self):
+        # vectorized code logic drawn from https://github.com/obryniarski/mh-gan-experiments/blob/master/mh.py
+        # the uber_research repo is too messy to make sense from in short term.
+        # it essentially can be considered as running N metropolis hasting chains together, where N is the batch_size of each sample from G
+        target.init_theta(batch_size)
+        x_last = target.last_sample()
+        last_prob = self.disc(x_last).view(-1)
+        for iter in range(1,self.target.iterations):
+            x_prop = self.gen(self.gen_latent())
+            u = torch.rand(self.batch_size, self.device)
+
+            prop_prob = self.disc(x_prop).view(-1)
+
+            with np.errstate(divide='ignore'):
+                a = self.accept_prob(prop_prob, last_prob)
+            x_last = torch.where(
+                #torch.cat([u.view(-1, 1), u.view(-1, 1)], dim=1) <= torch.cat([a.view(-1, 1), a.view(-1, 1)], dim=1),
+                u.view(-1, 1) <= a.view(-1, 1),
+                x_prop, x_last
+            )
+            last_prob = torch.where(
+                u.view(-1, 1) <= a.view(-1, 1),
+                prop_prob,last_prob  
+            )
+            
+            
+class GAN_sample_only:
     def __init__(self):
         pass
     def propose(self):
