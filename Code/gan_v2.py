@@ -1,9 +1,11 @@
 from typing import Callable
 from abc import ABC, abstractmethod
-from torch import nn, optim, distributions
-
-class NetWrapper(nn.module):
+from torch import nn, optim, distributions, autograd
+import torch
+import matplotlib.pyplot as plt
+class NetWrapper(nn.Module):
     def __init__(self,base,out_act):
+        super().__init__()
         self.base = base
         self.out_act = out_act
     def forward(self,x):
@@ -11,6 +13,7 @@ class NetWrapper(nn.module):
 
 class vanilla_disc_act(nn.Module):
     def __init__(self,input_dim):
+        super().__init__()
         self.act = nn.Sequential(
             nn.Linear(input_dim,1),
             nn.Sigmoid()
@@ -19,14 +22,29 @@ class vanilla_disc_act(nn.Module):
         return self.act(x)
 class wgan_disc_act(nn.Module):
     def __init__(self,input_dim):
+        super().__init__()
         self.act = nn.Linear(input_dim, 1)
     def forward(self,x):
         return self.act(x)
 class mdgan_disc_act(nn.Module):
     def __init__(self,input_dim,out_dim):
+        super().__init__()
         self.act = nn.Linear(input_dim,out_dim)
     def forward(self,x):
         return self.act(x)
+
+class VisLoss:
+    def __init__(self,counts):
+        self.loss_store = torch.zeros(counts)
+        self.idx = 0
+    def store(self,loss):
+        self.loss_store[self.idx] = loss
+        self.idx += 1
+    def __call__(self):
+        fig = plt.figure(figsize=(14,2))
+        ax = fig.add_subplot(1,1,1)
+        ax.plot(self.loss_store.cpu().detach().numpy())
+        plt.show()
 
 class GANLoop(ABC):
     def __init__(
@@ -38,7 +56,7 @@ class GANLoop(ABC):
         latent: Callable,
         gen: nn.Module,
         dis: nn.Module,
-        dataloader: torch.utils.data.Dataloader,
+        dataloader: torch.utils.data.DataLoader,
         epochs: int,
         device: torch.device
     ):
@@ -53,41 +71,110 @@ class GANLoop(ABC):
         self.epochs = epochs 
         self.device = device
     @abstractmethod
-    def train(self):
+    def train(self, vis = None, interval = None, visloss = None):
         ...
 
 class TogetherLoop(GANLoop):
-    def train(self):
+    def train(self, vis = None, interval = None, visloss = None):
+        if visloss:
+            self.dloss = visloss(self.epochs*len(self.dataloader))
+            self.gloss = visloss(self.epochs*len(self.dataloader))
+        else:
+            self.dloss = None
+            self.gloss = None
+
         for e in range(self.epochs):
             for i,batch in enumerate(self.dataloader):
                 # train discriminator
-                self.disStep(
+                dloss = self.disStep(
                     self.gen,self.dis,self.doptim,self.latent,
                     batch.to(self.device),self.device
                 )
                 # train generator
-                self.genStep(
+                gloss = self.genStep(
                     self.gen,self.dis,self.goptim,self.latent,
                     batch.to(self.device),self.device
                 )
+                if self.dloss:
+                    self.dloss.store(dloss)
+                    self.gloss.store(gloss)
+            if vis and (e+1)%interval == 0:
+                vis(self.gen,self.latent)
+        if self.dloss:
+            print("discriminator loss")
+            self.dloss()
+            print("generator loss")
+            self.gloss()
+
 class UnwantedLabelLoop(GANLoop):
-    def train(self):
+    def train(self, vis = None, interval = None, visloss = None):
+        if visloss:
+            self.dloss = visloss(self.epochs*len(self.dataloader))
+            self.gloss = visloss(self.epochs*len(self.dataloader))
+        else:
+            self.dloss = None
+            self.gloss = None
+
         for e in range(self.epochs):
             for i,(batch,_useless_label) in enumerate(self.dataloader):
                 # train discriminator
-                self.disStep(
+                dloss = self.disStep(
                     self.gen,self.dis,self.doptim,self.latent,
                     batch.to(self.device),self.device
                 )
                 # train generator
-                self.genStep(
+                gloss = self.genStep(
                     self.gen,self.dis,self.goptim,self.latent,
                     batch.to(self.device),self.device
                 )
+                if self.dloss:
+                    self.dloss.store(dloss)
+                    self.gloss.store(gloss)
+            if vis and (e+1)%interval == 0:
+                vis(self.gen,self.latent)
+        if self.dloss:
+            print("discriminator loss")
+            self.dloss()
+            print("generator loss")
+            self.gloss()
 def OneGenPerEpochLoop():
     ...
-def KGenPerEpochLoop(k):
-    ...
+class KGenPerEpochLoop(GANLoop):
+    def train(self, vis = None, interval = None, visloss = None):
+        k = 10
+        if visloss:
+            self.dloss = visloss(self.epochs*len(self.dataloader))
+            self.gloss = visloss(self.epochs*len(self.dataloader))
+        else:
+            self.dloss = None
+            self.gloss = None
+
+        for e in range(self.epochs):
+            for i,batch in enumerate(self.dataloader):
+                # train discriminator
+                dloss = self.disStep(
+                    self.gen,self.dis,self.doptim,self.latent,
+                    batch.to(self.device),self.device
+                )
+                if dloss:
+                    self.dloss.store(dloss)
+                
+                if i%k == 0:
+                    # train generator
+                    gloss = self.genStep(
+                        self.gen,self.dis,self.goptim,self.latent,
+                        batch.to(self.device),self.device
+                    )
+                    if gloss:
+                        self.gloss.store(gloss)
+
+            if vis and (e+1)%interval == 0:
+                vis(self.gen,self.latent)
+        if self.dloss:
+            print("discriminator loss")
+            self.dloss()
+            print("generator loss")
+            self.gloss()
 
 # currently assumes all latent of generator are normal
 
@@ -136,7 +223,7 @@ def WassersteinGeneratorStep(generator,discriminator,optimizer,latent,batch,devi
     fake_batch = generator(latent(batch.shape[0]).to(device)) 
     # update gen
     optimizer.zero_grad()
-    gloss = -self.discriminator(fake_batch).mean()
+    gloss = -discriminator(fake_batch).mean()
     gloss.backward()
     optimizer.step()
     return gloss
@@ -167,50 +254,6 @@ def __compute_gp(discriminator, real_data, fake_data):
     grad_norm = gradients.norm(2, 1)
     return torch.mean((grad_norm - 1) ** 2)
 #%% mdgan
-class MixtureDensityCriticStep:
-    def __init__(
-        self,
-        mixture = MixtureGaus(disc_dimension=4,sigma_scale=0.25)
-    ):
-        self.mixture = mixture
-    def __call__(self,generator,discriminator,optimizer,latent,batch,device):
-        # sample from latent
-        fake_batch = generator(latent(batch.shape[0]).to(device))    
-        # sample from data
-        ...
-        # update disc
-        optimizer.zero_grad()
-        # this is a target to maximize so mult by -1
-        dloss = - (
-            self.mixture.gausMixture.log_prob(discriminator(batch)).mean() +
-            torch.log(
-                self.mixture.maxval - 
-                #1-
-                torch.exp(self.mixture.gausMixture.log_prob(discriminator(fake_batch)))
-            ).mean()
-        )
-        dloss.backward()
-        optimizer.step()
-        return dloss
-class MixtureDensityGeneratorStep:
-    def __init__(
-        self,
-        mixture = MixtureGaus(disc_dimension=4,sigma_scale=0.25)
-    ):
-        self.mixture = mixture
-    def __call__(self,generator,discriminator,optimizer,latent,batch,device):
-        # sample from latent
-        fake_batch = generator(latent(batch.shape[0]).to(device))    
-        # update gen
-        optimizer.zero_grad()
-        gloss = torch.log(
-            self.mixture.maxval - 
-            #1-
-            torch.exp(self.mixture.gausMixture.log_prob(discriminator(fake_batch)))
-        ).mean()
-        gloss.backward()
-        optimizer.step()
-        return gloss
 from .simplex import simplex_params
 from scipy import optimize
 class MixtureGaus:
@@ -253,3 +296,48 @@ class MixtureGaus:
         # maxval to be used for in loss function, it is the true prob, not log_prob
         self._lg_maxval = self.gausMixture.log_prob(torch.FloatTensor(_xopt).to(self.device))
         self.maxval = torch.exp(self.gausMixture.log_prob(torch.FloatTensor(_xopt).to(self.device))) + self.num_tol
+
+class MixtureDensityCriticStep:
+    def __init__(
+        self,
+        mixture #= MixtureGaus(disc_dimension=4,sigma_scale=0.25)
+    ):
+        self.mixture = mixture
+    def __call__(self,generator,discriminator,optimizer,latent,batch,device):
+        # sample from latent
+        fake_batch = generator(latent(batch.shape[0]).to(device))    
+        # sample from data
+        ...
+        # update disc
+        optimizer.zero_grad()
+        # this is a target to maximize so mult by -1
+        dloss = - (
+            self.mixture.gausMixture.log_prob(discriminator(batch)).mean() +
+            torch.log(
+                self.mixture.maxval - 
+                #1-
+                torch.exp(self.mixture.gausMixture.log_prob(discriminator(fake_batch)))
+            ).mean()
+        )
+        dloss.backward()
+        optimizer.step()
+        return dloss
+class MixtureDensityGeneratorStep:
+    def __init__(
+        self,
+        mixture #= MixtureGaus(disc_dimension=4,sigma_scale=0.25)
+    ):
+        self.mixture = mixture
+    def __call__(self,generator,discriminator,optimizer,latent,batch,device):
+        # sample from latent
+        fake_batch = generator(latent(batch.shape[0]).to(device))    
+        # update gen
+        optimizer.zero_grad()
+        gloss = torch.log(
+            self.mixture.maxval - 
+            #1-
+            torch.exp(self.mixture.gausMixture.log_prob(discriminator(fake_batch)))
+        ).mean()
+        gloss.backward()
+        optimizer.step()
+        return gloss
