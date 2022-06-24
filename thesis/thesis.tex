@@ -389,6 +389,16 @@ The data is a bunch of colors in an arbitrary 3D ball of mess with very difficul
 
 (stil have problem understanding the math behind it, but implementation wise i think it just removes the bounded final activation and uses the score as a loss) 
 
+\section{Application:}
+\subsection{Stochastic Weather Generation}
+
+Besombes et al 2021 \cite{plasim_gan} trained a WGAN on 100 years data simulated from the general circulation model PlaSIM, in that they used batch normalization to stabilize the gan training. However, batch normalisation induces dependencies between items that are suppose to be independent within a batch. This ""will be"" replaced with (pixel norm or layer norm) to stabilize the training. In the published code they also normalized each timeframe independently, it will be replaced with normalization over the whole dataset.
+
+
+
+
+\subsection{Weather Forcasting}
+    
 
 \section{ Notes:}
 
