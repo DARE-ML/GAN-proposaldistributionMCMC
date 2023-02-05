@@ -59,14 +59,12 @@ class MHGAN_paper:
                 x_prop, x_last
             )
             all_samples[iter,:] = x_last
-            #print("LAST_PROB_unchange",last_prob.shape)
-            #print(u.shape,a.shape)
-            #print(u.view(-1,1).shape,a.view(-1, 1).shape)
+
             last_prob = torch.where(
                 u <= a,
                 prop_prob,last_prob  
             )
-            #print("LAST_PROB_change",last_prob.shape)
+
             __accept_count = torch.sum(u.view(-1, 1) <= a.view(-1, 1))
             print("ITERATION ACCEPT:",iter,__accept_count)
         return all_samples

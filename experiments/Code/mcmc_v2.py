@@ -366,6 +366,8 @@ class MHGANAcceptReject(AcceptRejectBlueprint):
             propose_prob,self.last_prob  
         )
         return torch.sum(u<=alpha).item(), self.last_batch, self.last_prob
+
+
 #%% langevin gradient
 
 class MiniBatchMH:

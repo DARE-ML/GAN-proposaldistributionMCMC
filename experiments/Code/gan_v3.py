@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from torch import nn, optim, distributions, autograd
 import torch
 import matplotlib.pyplot as plt
+import numpy as np
 class NetWrapper(nn.Module):
     def __init__(self,base,out_act):
         super().__init__()
@@ -66,14 +67,15 @@ class GANLoop(ABC):
     def train(self, vis = None, interval = None, visloss = None):
         ...
 class KDisLoop(GANLoop):
-    def train(self, vis = None, interval = None, visloss = None, k = 10,save_model_path = None):
-        if visloss:
-            self.dloss = visloss(self.epochs*len(self.dataloader))
-            self.gloss = visloss(self.epochs*len(self.dataloader))
-        else:
-            self.dloss = None
-            self.gloss = None
+    def train(self, vis = None, interval = None, 
+            visloss_gen = None, visloss_dis = None, 
+            k = 10,save_model_path = None, 
+            avggrad_gen = None, avggrad_dis = None):
 
+        self.dloss = visloss_dis
+        self.gloss = visloss_gen
+        self.avggrad_gen = avggrad_gen
+        self.avggrad_dis = avggrad_dis
         for e in range(self.epochs):
             for i,batch in enumerate(self.dataloader):
                 # train discriminator
@@ -82,8 +84,14 @@ class KDisLoop(GANLoop):
                     batch.to(self.device),self.device
                 )
                 if dloss:
-                    self.dloss.store(dloss)
-                
+                    self.dloss.store(dloss.detach())
+                if avggrad_dis:
+                    total_grad = 0
+                    total_neur = 0
+                    for param in self.dis.parameters():
+                        total_grad += param.grad.sum()
+                        total_neur += np.prod(param.shape)
+                    self.avggrad_dis.store(total_grad/total_neur)
                 if i%k == 0:
                     # train generator
                     gloss = self.genStep(
@@ -91,19 +99,85 @@ class KDisLoop(GANLoop):
                         batch.to(self.device),self.device
                     )
                     if gloss:
-                        self.gloss.store(gloss)
-                    
+                        self.gloss.store(gloss.detach())
+                    if avggrad_gen:
+                        total_grad = 0
+                        total_neur = 0
+                        for param in self.gen.parameters():
+                            total_grad += param.grad.sum()
+                            total_neur += np.prod(param.shape)
+                        self.avggrad_gen.store(total_grad/total_neur)
                     
             if vis and (e+1)%interval == 0:
                 vis(self.gen,self.latent)
                 if save_model_path:
                     torch.save(self.gen.state_dict(), save_model_path+"_gen_"+str(e))
-                    torch.save(self.dis.state_dict(), save_model_path+"_gen_"+str(e))                    
+                    torch.save(self.dis.state_dict(), save_model_path+"_dis_"+str(e))                    
         if self.dloss:
             print("discriminator loss")
             self.dloss()
             print("generator loss")
             self.gloss()
+            print("discriminator gradient")
+            self.avggrad_dis()
+            print("generator gradient")
+            self.avggrad_gen()
+            
+class KDisLoopIgnoreLabel(GANLoop):
+    def train(self, vis = None, interval = None, 
+                visloss_gen = None, visloss_dis = None, 
+                k = 10,save_model_path = None,
+                avggrad_gen = None, avggrad_dis = None):
+        self.dloss = visloss_dis
+        self.gloss = visloss_gen
+        self.avggrad_gen = avggrad_gen
+        self.avggrad_dis = avggrad_dis
+        for e in range(self.epochs):
+            for i,(batch,_labels) in enumerate(self.dataloader):
+                # train discriminator
+                dloss = self.disStep(
+                    self.gen,self.dis,self.doptim,self.latent,
+                    batch.to(self.device),self.device
+                )
+                if dloss:
+                    self.dloss.store(dloss.detach())
+                if avggrad_dis:
+                    total_grad = 0
+                    total_neur = 0
+                    for param in self.dis.parameters():
+                        total_grad += param.grad.sum()
+                        total_neur += np.prod(param.shape)
+                    self.avggrad_dis.store(total_grad/total_neur)
+                if i%k == 0:
+                    # train generator
+                    gloss = self.genStep(
+                        self.gen,self.dis,self.goptim,self.latent,
+                        batch.to(self.device),self.device
+                    )
+                    if gloss:
+                        self.gloss.store(gloss.detach())
+                    if avggrad_gen:
+                        total_grad = 0
+                        total_neur = 0
+                        for param in self.gen.parameters():
+                            total_grad += param.grad.sum()
+                            total_neur += np.prod(param.shape)
+                        self.avggrad_gen.store(total_grad/total_neur)
+            if vis and (e+1)%interval == 0:
+                vis(self.gen,self.latent)
+                if save_model_path:
+                    torch.save(self.gen.state_dict(), save_model_path+"_gen_"+str(e))
+                    torch.save(self.dis.state_dict(), save_model_path+"_dis_"+str(e))                    
+        if self.dloss:
+            print("discriminator loss")
+            self.dloss()
+            print("generator loss")
+            self.gloss()
+            print("discriminator gradient")
+            self.avggrad_dis()
+            print("generator gradient")
+            self.avggrad_gen()
+
 class AlternateEpochLoop(GANLoop):
     def train(self, vis = None, interval = None, visloss = None):
         if visloss:
@@ -277,19 +351,24 @@ def VanillaGeneratorStep(generator,discriminator,optimizer,latent,batch,device):
     optimizer.step()
     return gloss
 #%% wgan-gp
-def WassersteinCriticStep(generator,discriminator,optimizer,latent,batch,device):
+def WassersteinCriticStep(generator,discriminator,optimizer,latent,batch,device,penalty = 0.4):
     # sample from latent
     fake_batch = generator(latent(batch.shape[0]).to(device))    
     # sample from data
     ...
     # update disc
     optimizer.zero_grad()
-
-    dloss = ( 
-        discriminator(fake_batch).mean() -
-        discriminator(batch).mean() +
-        __compute_gp(discriminator,batch,fake_batch)
-    ) 
+    if penalty != 0:
+        dloss = ( 
+            discriminator(fake_batch).mean() -
+            discriminator(batch).mean() +
+            penalty*__compute_gp(discriminator,batch,fake_batch)
+        ) 
+    else:
+        dloss = ( 
+            discriminator(fake_batch).mean() -
+            discriminator(batch).mean()
+        )
     dloss.backward()
     optimizer.step()
     return dloss
@@ -351,14 +430,15 @@ def DRAGANGeneratorStep(generator,discriminator,optimizer,latent,batch,device):
     optimizer.step()
     return gloss
 
-def LSGANDiscriminatorStep(generator,discriminator,optimizer,latent,batch,device,penalty = 0.4):
-    fake_batch = generator(latent(batch.shape[0]).to(device))
+def LSGANDiscriminatorStep(generator,discriminator,optimizer,latent,batch,device):
+    fake_batch = generator(latent(batch.shape[0]))
     # update disc
-    #y = torch.cat( (torch.ones([batch.shape[0],1],device = device),torch.zeros([batch.shape[0],1],device = device)) )
-    #y.to(device)
-    x = discriminator(torch.cat((batch.to(device),fake_batch)))
+    #x = discriminator(torch.cat((batch.to(device),fake_batch)))
+    x_true = discriminator(batch.to(device))
+    x_fake = discriminator(fake_batch)
     optimizer.zero_grad()
-    dloss = (-(x[:len(batch)]-1)**2+(x[len(batch):])**2).mean()
+    #dloss = (-(x_true-1)**2+x_fake**2).mean()
+    dloss = ((x_true-1)**2+x_fake**2).mean()
     dloss.backward()
     optimizer.step()
     return dloss
@@ -367,9 +447,9 @@ def LSGANGeneratorStep(generator,discriminator,optimizer,latent,batch,device):
     fake_batch = generator(latent(batch.shape[0]).to(device))    
     # update gen
     y = torch.zeros([batch.shape[0],1],device = device)
-    x = discriminator(fake_batch)
+    x_fake = discriminator(fake_batch)
     optimizer.zero_grad()
-    gloss = (-(x-1)**2).mean()#-torch.nn.BCELoss()(x,y)
+    gloss = ((x_fake-1)**2).mean()
     gloss.backward()
     optimizer.step()
     return gloss
@@ -399,7 +479,7 @@ def TWINGANDiscriminatorStep(generator,discriminator,optimizer,latent,batch,devi
     return dloss_w, dloss_b
 def TWINGeneratorStep(generator,discriminator,optimizer,latent,batch,device):
     # sample from latent
-    discriminator.setmode("eval_w")
+    #discriminator.setmode("eval_w")
     fake_batch = generator(latent(batch.shape[0]).to(device))    
     # update gen
     y = torch.zeros([batch.shape[0],1],device = device)
